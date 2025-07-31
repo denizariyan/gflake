@@ -8,7 +8,7 @@ find_package(GTest REQUIRED)
 
 # Create test binary with various test types
 add_executable(test_binary
-    tests/sample_tests.cpp
+    sample_tests.cpp
 )
 
 target_link_libraries(test_binary

@@ -203,7 +203,7 @@ __marimo__/
 .streamlit/secrets.toml
 
 # CMake build files
-build/
+**/build/
 cmake_build_debug/
 cmake_build_release/
 CMakeCache.txt
