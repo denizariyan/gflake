@@ -15,6 +15,7 @@ from rich.progress import (
 from rich.panel import Panel
 from rich.table import Table
 from rich.live import Live
+import statistics
 
 from .test_discovery import TestCase
 from .test_runner import TestRunner, TestRunResult, TestTimingInfo
@@ -112,7 +113,7 @@ class DeflakeRunner:
         """
         self.console.print(f"🎯 [bold blue]Starting Deflake Session[/bold blue]")
         self.console.print(f"   Test: [cyan]{test_case.full_name}[/cyan]")
-        self.console.print(f"   Duration: [yellow]{duration_minutes} minutes[/yellow]")
+        self.console.print(f"   Duration: [yellow]{self.runner.format_duration(duration_minutes * 60)} seconds[/yellow]")
         self.console.print(f"   Processes: [magenta]{self.num_processes}[/magenta]")
         self.console.print()
         
@@ -149,14 +150,36 @@ class DeflakeRunner:
                 total=num_runs
             )
             
-            timing_info = self.runner.measure_test_timing(
-                test_case, 
-                num_runs=num_runs,
-                timeout=30  # 30 second timeout per test
-            )
+            # Run tests individually and update progress after each one
+            runs = []
+            for i in range(num_runs):
+                result = self.runner.run_test_once(test_case, timeout=30)
+                runs.append(result)
+                progress.update(task, completed=i + 1)
             
-            # Update progress to complete
-            progress.update(task, completed=num_runs)
+            # Calculate statistics manually (similar to TestRunner.measure_test_timing)
+            durations = [run.duration for run in runs]
+            successful_runs = [run for run in runs if run.success]
+                        
+            # Use all durations for timing stats (even failed runs have timing)
+            median_duration = statistics.median(durations)
+            mean_duration = statistics.mean(durations)
+            min_duration = min(durations)
+            max_duration = max(durations)
+            
+            # Calculate success rate
+            success_rate = len(successful_runs) / len(runs) if runs else 0.0
+            
+            timing_info = TestTimingInfo(
+                test_case=test_case,
+                runs=runs,
+                median_duration=median_duration,
+                mean_duration=mean_duration,
+                min_duration=min_duration,
+                max_duration=max_duration,
+                success_rate=success_rate,
+                total_runs=len(runs)
+            )
         
         return timing_info
     
@@ -177,7 +200,7 @@ class DeflakeRunner:
         table.add_row("Mean Time", self.runner.format_duration(timing_info.mean_duration))
         table.add_row("Success Rate", f"{timing_info.success_rate:.1%}")
         table.add_row("Estimated Attempts", f"{estimated_attempts:,}")
-        table.add_row("Target Duration", f"{duration_minutes} minutes")
+        table.add_row("Target Duration", self.runner.format_duration(duration_minutes * 60.0))
         
         self.console.print(table)
         self.console.print()
@@ -234,25 +257,22 @@ class DeflakeRunner:
             completed_attempts = 0
             
             with ProcessPoolExecutor(max_workers=self.num_processes) as executor:
-                # Submit initial batch of work
                 futures = []
-                batch_size = min(self.num_processes * 2, estimated_attempts)  # Keep a small queue
+                batch_size = min(self.num_processes, estimated_attempts)
                 
+                # Estimated attempt count is just an estimate... Exceeding it is fine
                 for _ in range(batch_size):
                     if completed_attempts < estimated_attempts and time.time() < target_end_time:
                         future = executor.submit(_run_single_test_worker, 
                                                (self.binary_path, test_case_dict, 30))
                         futures.append(future)
                 
-                # Process completed futures and submit new ones
-                while futures and time.time() < target_end_time and completed_attempts < estimated_attempts:
-                    # Wait for at least one future to complete
-                    for future in as_completed(futures, timeout=1.0):
+                while futures and time.time() < target_end_time:
+                    for future in as_completed(futures, timeout=30):
                         try:
                             result = future.result()
                             completed_attempts += 1
                             
-                            # Update statistics
                             stats.actual_attempts = completed_attempts
                             stats.actual_run_times.append(result.duration)  # Track individual run time
                             if result.success:
@@ -263,29 +283,25 @@ class DeflakeRunner:
                             
                             stats.total_time_elapsed = time.time() - start_time
                             
-                            # Update progress
                             progress.update(main_task, completed=completed_attempts)
                             
-                            # Update stats display
                             success_rate = (stats.successful_runs / completed_attempts) * 100
                             progress.update(
                                 stats_task,
                                 description=f"📊 Success: {stats.successful_runs}/{completed_attempts} ({success_rate:.1f}%)"
                             )
                             
-                            # Remove completed future
                             futures.remove(future)
                             
                             # Submit new work if we haven't reached our limits
-                            if (completed_attempts < estimated_attempts and 
-                                time.time() < target_end_time and 
-                                len(futures) < self.num_processes * 2):
+                            if (time.time() < target_end_time and 
+                                len(futures) < self.num_processes):
                                 
                                 new_future = executor.submit(_run_single_test_worker,
                                                            (self.binary_path, test_case_dict, 30))
                                 futures.append(new_future)
                             
-                            break  # Process one result at a time
+                            break  # Exit early if conditions are met by processing one at a time
                             
                         except Exception as e:
                             # Handle individual test execution errors
@@ -299,7 +315,7 @@ class DeflakeRunner:
                                 duration=0.0,
                                 stdout="",
                                 stderr=f"Process execution error: {e}",
-                                return_code=-999
+                                return_code=42
                             )
                             stats.failure_details.append(error_result)
                             
@@ -456,7 +472,7 @@ class DeflakeRunner:
         
         if len(failure_details) > max_logs:
             remaining = len(failure_details) - max_logs
-            self.console.print(f"\n[dim]... and {remaining} more failures (use verbose mode to see all)[/dim]")
+            self.console.print(f"\n[dim]... and {remaining} more failures.[/dim]")
         
         # Notify user about the log file
         self.console.print(f"\n💾 [dim]All {len(failure_details)} failed test runs logged to: failed_tests.log[/dim]")

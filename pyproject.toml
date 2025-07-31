@@ -13,6 +13,9 @@ dependencies = [
     "questionary>=2.0.0",
 ]
 
+[project.scripts]
+deflake = "deflake.cli:main"
+
 [tool.poetry]
 packages = [{include = "deflake", from = "src"}]
 

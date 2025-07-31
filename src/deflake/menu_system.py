@@ -30,10 +30,10 @@ class BackAction(MenuAction):
 class TestMenuSystem:
     """Interactive menu system for selecting test cases."""
     
-    def __init__(self, binary_path: str):
+    def __init__(self, binary_path: str, suites: Optional[dict] = None):
         self.discovery = TestDiscovery(binary_path)
         self.console = Console()
-        self.suites = None
+        self.suites = suites
     
     def select_test_case(self) -> Optional[TestCase]:
         """
@@ -45,7 +45,6 @@ class TestMenuSystem:
         try:
             # Discover tests if not already done
             if self.suites is None:
-                self.console.print("🔍 Discovering tests...")
                 self.suites = self.discovery.discover_tests()
             
             if not self.suites:
@@ -56,7 +55,7 @@ class TestMenuSystem:
             while True:
                 # Step 1: Show overview and select suite
                 suite = self._select_suite()
-                if isinstance(suite, ExitAction):
+                if isinstance(suite, ExitAction) or suite is None:
                     return None  # User chose to exit
                 
                 # Step 2: Select test case from the suite
@@ -102,9 +101,6 @@ class TestMenuSystem:
                 suite_info += f" [{', '.join(indicators)}]"
             
             choices.append(questionary.Choice(title=suite_info, value=suite))
-        
-        # Show test overview
-        self._show_test_overview()
         
         # Add exit option
         choices.append(questionary.Choice(title="← Exit", value=ExitAction()))
@@ -207,13 +203,6 @@ class TestMenuSystem:
             
             tree.add(case_info)
         
-        panel = Panel(
-            tree,
-            title=f"Suite: {suite.name} - {len(suite.cases)} test cases",
-            border_style="yellow"
-        )
-        
-        self.console.print(panel)
         self.console.print()
     
     def _show_test_case_details(self, case: TestCase):
