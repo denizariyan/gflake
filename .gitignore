@@ -201,3 +201,23 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# CMake build files
+build/
+cmake_build_debug/
+cmake_build_release/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Test binaries
+test_binary
+*.exe
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
