@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <chrono>
 #include <thread>
+#include <random>
 
 class BasicTests : public ::testing::Test {
 protected:
@@ -24,6 +25,22 @@ TEST_F(BasicTests, VerySlowTest) {
 
 TEST_F(BasicTests, LongRunningTest) {
     std::this_thread::sleep_for(std::chrono::seconds(2));
+    EXPECT_TRUE(true);
+}
+
+TEST_F(BasicTests, FlakyTest) {
+    // Create a flaky test that fails ~10% of the time
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(1, 10);
+    
+    int random_value = dis(gen);
+    
+    // Fail if we get a 1 (10% chance)
+    if (random_value == 1) {
+        FAIL() << "Simulated flaky test failure (random value: " << random_value << ")";
+    }
+    
     EXPECT_TRUE(true);
 }
 
