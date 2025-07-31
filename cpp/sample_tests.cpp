@@ -22,6 +22,11 @@ TEST_F(BasicTests, VerySlowTest) {
     EXPECT_TRUE(true);
 }
 
+TEST_F(BasicTests, LongRunningTest) {
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    EXPECT_TRUE(true);
+}
+
 class MathTests : public ::testing::Test {};
 
 TEST_F(MathTests, Addition) {
