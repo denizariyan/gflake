@@ -91,7 +91,7 @@ def run(
             raise typer.Exit(0)
 
         console.print()
-        stats = gflake_runner.run_deflake_session(
+        stats = gflake_runner.run_gflake_session(
             test_case=selected_test,
             duration_minutes=duration / 60.0,  # Convert seconds to minutes
         )

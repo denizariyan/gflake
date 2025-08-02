@@ -124,7 +124,7 @@ class TestCLI:
             num_processes=2,
             failed_runs=0,  # No failures
         )
-        mock_runner_instance.run_deflake_session.return_value = mock_stats
+        mock_runner_instance.run_gflake_session.return_value = mock_stats
         mock_runner_class.return_value = mock_runner_instance
 
         result = self.runner.invoke(app, ["run", "/path/to/binary", "--duration", "60"])
@@ -164,7 +164,7 @@ class TestCLI:
             num_processes=2,
             failed_runs=5,  # Some failures
         )
-        mock_runner_instance.run_deflake_session.return_value = mock_stats
+        mock_runner_instance.run_gflake_session.return_value = mock_stats
         mock_runner_class.return_value = mock_runner_instance
 
         result = self.runner.invoke(app, ["run", "/path/to/binary", "--duration", "60"])
@@ -226,7 +226,7 @@ class TestCLI:
             num_processes=4,
             failed_runs=0,
         )
-        mock_runner_instance.run_deflake_session.return_value = mock_stats
+        mock_runner_instance.run_gflake_session.return_value = mock_stats
         mock_runner_class.return_value = mock_runner_instance
 
         result = self.runner.invoke(
@@ -245,8 +245,8 @@ class TestCLI:
         assert result.exit_code == 0
         # Verify custom options were passed correctly
         mock_runner_class.assert_called_once_with("/path/to/binary", num_processes=4)
-        mock_runner_instance.run_deflake_session.assert_called_once()
-        call_args = mock_runner_instance.run_deflake_session.call_args
+        mock_runner_instance.run_gflake_session.assert_called_once()
+        call_args = mock_runner_instance.run_gflake_session.call_args
         assert call_args[1]["duration_minutes"] == 2.0  # 120/60 = 2.0
 
     @patch("gflake.cli.console")
@@ -318,7 +318,7 @@ class TestCLI:
             num_processes=2,
             failed_runs=0,
         )
-        mock_runner_instance.run_deflake_session.return_value = mock_stats
+        mock_runner_instance.run_gflake_session.return_value = mock_stats
         mock_runner_class.return_value = mock_runner_instance
 
         # Run with 120 seconds duration
@@ -329,6 +329,6 @@ class TestCLI:
 
         # Check that duration was converted to minutes (120 seconds = 2 minutes)
         assert result.exit_code == 0
-        mock_runner_instance.run_deflake_session.assert_called_once()
-        call_args = mock_runner_instance.run_deflake_session.call_args
+        mock_runner_instance.run_gflake_session.assert_called_once()
+        call_args = mock_runner_instance.run_gflake_session.call_args
         assert call_args[1]["duration_minutes"] == 2.0  # 120/60 = 2.0

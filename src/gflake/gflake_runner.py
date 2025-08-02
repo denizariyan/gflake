@@ -100,7 +100,7 @@ class GflakeRunner:
             "parameter_value": test_case.parameter_value,
         }
 
-    def run_deflake_session(
+    def run_gflake_session(
         self,
         test_case: GTestCase,
         duration_minutes: float,
@@ -125,7 +125,7 @@ class GflakeRunner:
         self.console.print(f"   Processes: [magenta]{self.num_processes}[/magenta]")
         self.console.print()
 
-        stats = self._run_deflake_attempts(test_case, duration_minutes)
+        stats = self._run_gflake_attempts(test_case, duration_minutes)
 
         return stats
 
@@ -211,7 +211,7 @@ class GflakeRunner:
         self.console.print(table)
         self.console.print()
 
-    def _run_deflake_attempts(
+    def _run_gflake_attempts(
         self,
         test_case: GTestCase,
         duration_minutes: float,

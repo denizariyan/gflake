@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(deflake_test_binary)
+project(gflake_test_binary)
 
 set(CMAKE_CXX_STANDARD 17)
 
