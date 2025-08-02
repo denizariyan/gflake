@@ -20,7 +20,23 @@ TODO: replace the gif with new name
 
 #### From PyPI
 
-TODO: Add PyPI installation instructions
+##### Using pipx (recommended):
+
+Install pipx if you haven't already by following [the instructions](https://pipx.pypa.io/stable/installation/).
+
+```bash
+pipx install gflake
+```
+
+##### Using pip:
+
+If installing pipx is not an option, you may also install gflake using pip:
+
+```bash
+pip install --user gflake
+```
+
+Ensure that your `PATH` includes the directory where pip installs executables (usually `~/.local/bin` on Linux/macOS).
 
 #### From Source
 
