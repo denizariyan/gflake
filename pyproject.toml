@@ -28,6 +28,48 @@ packages = [{include = "deflake", from = "src"}]
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=6.0.0,<8.0.0"
+ruff = "^0.1.0"
+
+[tool.ruff]
+extend-select = ['E', 'F', 'W', 'A', 'PLC', 'PLE', 'PLW', 'I']
+ignore = []
+
+fixable = ["ALL"]
+unfixable = []
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+line-length = 120
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+target-version = "py38"
+
+[tool.ruff.format]
+line-ending = "auto"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

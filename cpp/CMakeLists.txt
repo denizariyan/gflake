@@ -26,3 +26,9 @@ target_link_libraries(empty_test_binary
     GTest::gtest
     GTest::gtest_main
 )
+
+# Enable testing
+
+enable_testing()
+add_test(NAME all_tests COMMAND test_binary)
+add_test(NAME empty_tests COMMAND empty_test_binary)

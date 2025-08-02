@@ -155,8 +155,15 @@ poetry install
 # Build sample C++ tests
 mkdir -p cpp/build && cd cpp/build && cmake .. && make
 
-# Run tests e.g.
+# Run tests
+## Python
 poetry run python demo/real_flaky_demo.py
+
+## C++
+cd cpp/build && ctest --output-on-failure
+
+# Run linter
+poetry run ruff check src/ tests/ --fix
 ```
 
 ## Tips

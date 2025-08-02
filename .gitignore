@@ -51,6 +51,11 @@ coverage.xml
 .pytest_cache/
 cover/
 
+# Test results and CI artifacts
+test_results.xml
+flaky_test_results.xml
+failed_tests.log
+
 # Translations
 *.mo
 *.pot
