@@ -1,6 +1,6 @@
 # Deflake - Google Test Deflaking Tool
 
-A CLI tool to automatically discover, and repeatedly run Google Test (gtest) test cases to identify flaky tests.
+A CLI tool to automatically discover and repeatedly run Google Test (gtest) test cases to identify flaky tests.
 
 ## Features
 
@@ -34,6 +34,9 @@ cd deflake
 
 # Install with Poetry
 poetry install
+
+# Alternatively, use make alias
+make install
 ```
 
 ## Usage
@@ -59,8 +62,8 @@ deflake run <binary> [OPTIONS]
 Options:
   -d, --duration FLOAT     Duration to run tests in seconds [default: 5.0]
   -p, --processes INT      Number of parallel processes [default: auto]
-  -v, --verbose           Enable verbose output
-  --help                  Show help message
+  -v, --verbose            Enable verbose output
+  --help                   Show help message
 ```
 
 ### Examples
@@ -136,12 +139,18 @@ poetry install
 # Build sample C++ binary with gtest
 mkdir -p cpp/build && cd cpp/build && cmake .. && cmake --build .
 
-# Run tests
-## Python
+# Run Python tests
+## Using Poetry
 poetry run pytest tests/
+## Using Makefile alias
+make test-python
 
-## C++
+# Run C++ tests
+## Using CMake
 cd cpp/build && ctest
+## Using Makefile alias
+make test-cpp        # Without flaky test
+make test-cpp-all    # With flaky test
 
 # Use sample gtest binary
 ## Run using installed deflake
@@ -151,10 +160,10 @@ deflake run cpp/build/test_binary
 poetry run deflake run cpp/build/test_binary
 
 # Run linter
-poetry run ruff check src/ tests/ --fix
+make lint-fix
 
 # Run formatter
-poetry run ruff format src/ tests/
+make format
 ```
 
 ## Tips

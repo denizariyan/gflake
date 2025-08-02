@@ -214,7 +214,10 @@ cmake_build_release/
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
-Makefile
+**/Makefile
+
+# Don't ignore main makefile
+!Makefile
 
 # Test binaries
 test_binary

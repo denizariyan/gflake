@@ -48,12 +48,12 @@ jobs:
 
       - name: Run linting with ruff
         run: |
-          poetry run ruff check src/ tests/
+          make lint
 
       - name: Check code formatting with ruff
         run: |
-          poetry run ruff format --check src/ tests/
+          make format-check
 
       - name: Run tests with pytest
         run: |
-          poetry run pytest tests/ -v
+          make test-python
