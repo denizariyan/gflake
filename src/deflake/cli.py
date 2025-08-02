@@ -31,14 +31,9 @@ def run(
         help="Path to the gtest binary to run tests from"
     ),
     duration: float = typer.Option(
-        10.0,
+        5.0,
         "--duration", "-d",
         help="Duration to run tests in seconds"
-    ),
-    initial_runs: int = typer.Option(
-        5,
-        "--initial-runs", "-i",
-        help="Number of initial timing runs for estimation"
     ),
     processes: Optional[int] = typer.Option(
         None,
@@ -71,7 +66,6 @@ def run(
         console.print(f"🎯 [bold blue]Deflake Tool[/bold blue]")
         console.print(f"   Binary: [cyan]{binary_path}[/cyan]")
         console.print(f"   Target Duration: [yellow]{duration} seconds[/yellow]")
-        console.print(f"   Initial Timing Runs: [magenta]{initial_runs}[/magenta]")
         if processes:
             console.print(f"   Processes: [green]{processes}[/green]")
         console.print()
@@ -87,7 +81,7 @@ def run(
             raise typer.Exit(1)
         
         # Create menu system and deflake runner
-        menu_system = TestMenuSystem(str(binary_path), suites)
+        menu_system = TestMenuSystem(str(binary_path))
         deflake_runner = DeflakeRunner(str(binary_path), num_processes=processes)
         
         # Use the menu system to select a test case
@@ -101,8 +95,7 @@ def run(
         console.print()
         stats = deflake_runner.run_deflake_session(
             test_case=selected_test,
-            duration_minutes=duration / 60.0,  # Convert seconds to minutes
-            initial_timing_runs=initial_runs
+            duration_minutes=duration / 60.0  # Convert seconds to minutes
         )
         
         # Exit with appropriate code based on flaky behavior detection

@@ -55,9 +55,7 @@ class ActualRunTimeStats:
 class DeflakeRunStats:
     """Statistics for a deflake run session."""
     test_case: TestCase
-    timing_info: TestTimingInfo
     target_duration_minutes: float
-    estimated_attempts: int
     num_processes: int = 1
     actual_attempts: int = 0
     successful_runs: int = 0
@@ -97,8 +95,7 @@ class DeflakeRunner:
     def run_deflake_session(
         self, 
         test_case: TestCase, 
-        duration_minutes: float,
-        initial_timing_runs: int = 5
+        duration_minutes: float
     ) -> DeflakeRunStats:
         """
         Run a complete deflake session with progress tracking.
@@ -106,30 +103,18 @@ class DeflakeRunner:
         Args:
             test_case: The test case to run repeatedly
             duration_minutes: How long to run the test (in minutes)
-            initial_timing_runs: Number of initial runs for timing estimation
             
         Returns:
             DeflakeRunStats with complete session statistics
         """
         self.console.print(f"🎯 [bold blue]Starting Deflake Session[/bold blue]")
         self.console.print(f"   Test: [cyan]{test_case.full_name}[/cyan]")
-        self.console.print(f"   Duration: [yellow]{self.runner.format_duration(duration_minutes * 60)} seconds[/yellow]")
+        self.console.print(f"   Duration: [yellow]{self.runner.format_duration(duration_minutes * 60)}[/yellow]")
         self.console.print(f"   Processes: [magenta]{self.num_processes}[/magenta]")
         self.console.print()
+
+        stats = self._run_deflake_attempts(test_case, duration_minutes)
         
-        # Phase 1: Initial timing measurement
-        timing_info = self._measure_initial_timing(test_case, initial_timing_runs)
-        
-        # Phase 2: Estimate attempts and confirm (accounting for multiple processes)
-        estimated_attempts = self.runner.estimate_attempts_for_duration(timing_info, duration_minutes)
-        # Multiply by number of processes since we can run them in parallel
-        estimated_attempts = estimated_attempts * self.num_processes
-        self._show_estimation_summary(timing_info, duration_minutes, estimated_attempts)
-        
-        # Phase 3: Run the deflake session
-        stats = self._run_deflake_attempts(test_case, timing_info, duration_minutes, estimated_attempts)
-        
-        # Phase 4: Show final results
         self._show_final_results(stats)
         
         return stats
@@ -208,17 +193,13 @@ class DeflakeRunner:
     def _run_deflake_attempts(
         self, 
         test_case: TestCase, 
-        timing_info: TestTimingInfo,
-        duration_minutes: float,
-        estimated_attempts: int
+        duration_minutes: float
     ) -> DeflakeRunStats:
         """Run the main deflake attempts with multiprocessing and live progress tracking."""
         
         stats = DeflakeRunStats(
             test_case=test_case,
-            timing_info=timing_info,
             target_duration_minutes=duration_minutes,
-            estimated_attempts=estimated_attempts,
             num_processes=self.num_processes
         )
         
@@ -228,11 +209,12 @@ class DeflakeRunner:
         # Prepare test case for multiprocessing
         test_case_dict = self._test_case_to_dict(test_case)
         
+        duration_seconds = duration_minutes * 60
+        
         with Progress(
             TextColumn("[progress.description]"),
             BarColumn(),
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            MofNCompleteColumn(),
             TextColumn("•"),
             TimeElapsedColumn(),
             TextColumn("•"),
@@ -241,28 +223,22 @@ class DeflakeRunner:
             refresh_per_second=4  # Update 4 times per second
         ) as progress:
             
-            # Add main progress task
+            # Add main progress task based on time elapsed
             main_task = progress.add_task(
                 f"🚀 Running {test_case.name} ({self.num_processes} processes)",
-                total=estimated_attempts
+                total=100,  # 100% progress based on time
+                completed=0
             )
             
-            # Add stats task
-            stats_task = progress.add_task(
-                "📊 Success: 0/0 (0.0%)",
-                total=100,
-                visible=False  # Hide the bar for stats
-            )
             
             completed_attempts = 0
             
             with ProcessPoolExecutor(max_workers=self.num_processes) as executor:
                 futures = []
-                batch_size = min(self.num_processes, estimated_attempts)
                 
-                # Estimated attempt count is just an estimate... Exceeding it is fine
-                for _ in range(batch_size):
-                    if completed_attempts < estimated_attempts and time.time() < target_end_time:
+                # Start initial batch of tests (one per process)
+                for _ in range(self.num_processes):
+                    if time.time() < target_end_time:
                         future = executor.submit(_run_single_test_worker, 
                                                (self.binary_path, test_case_dict, 30))
                         futures.append(future)
@@ -283,13 +259,10 @@ class DeflakeRunner:
                             
                             stats.total_time_elapsed = time.time() - start_time
                             
-                            progress.update(main_task, completed=completed_attempts)
+                            # Update progress based on time elapsed (0-100%)
+                            time_progress = min(100, (stats.total_time_elapsed / duration_seconds) * 100)
+                            progress.update(main_task, completed=time_progress)
                             
-                            success_rate = (stats.successful_runs / completed_attempts) * 100
-                            progress.update(
-                                stats_task,
-                                description=f"📊 Success: {stats.successful_runs}/{completed_attempts} ({success_rate:.1f}%)"
-                            )
                             
                             futures.remove(future)
                             
