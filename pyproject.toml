@@ -14,9 +14,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = [
+dev = [
     "pytest>=6.0.0,<8.0.0",
     "pytest-cov>=2.0.0,<4.0.0",
+    "ruff>=0.1.0",
 ]
 
 [project.scripts]
@@ -24,11 +25,6 @@ gflake = "gflake.cli:main"
 
 [tool.poetry]
 packages = [{include = "gflake", from = "src"}]
-
-
-[tool.poetry.group.dev.dependencies]
-pytest = ">=6.0.0,<8.0.0"
-ruff = "^0.1.0"
 
 [tool.ruff]
 extend-select = ['E', 'F', 'W', 'A', 'PLC', 'PLE', 'PLW', 'I']
