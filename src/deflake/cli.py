@@ -100,10 +100,10 @@ def run(
         
         # Exit with appropriate code based on flaky behavior detection
         if stats.failed_runs > 0:
-            console.print(f"\n🔍 [bold red]Flaky behavior detected![/bold red] Exiting with code 1.")
+            console.print(f"\n🔍 [bold red]Flaky behavior detected![/bold red]")
             raise typer.Exit(1)
         else:
-            console.print(f"\n✅ [bold green]No flaky behavior detected.[/bold green] Exiting with code 0.")
+            console.print(f"\n✅ [bold green]No flaky behavior detected.[/bold green]")
             raise typer.Exit(0)
     
     except KeyboardInterrupt:

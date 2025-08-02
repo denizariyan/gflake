@@ -8,13 +8,10 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import List, Optional, Tuple, Dict
 from dataclasses import dataclass, field
 from rich.console import Console
-from rich.progress import (
-    Progress, BarColumn, TextColumn, TimeElapsedColumn, 
-    TimeRemainingColumn, MofNCompleteColumn, SpinnerColumn
-)
 from rich.panel import Panel
 from rich.table import Table
 from rich.live import Live
+from rich.layout import Layout
 import statistics
 
 from .test_discovery import TestCase
@@ -115,8 +112,6 @@ class DeflakeRunner:
 
         stats = self._run_deflake_attempts(test_case, duration_minutes)
         
-        self._show_final_results(stats)
-        
         return stats
     
     def _measure_initial_timing(self, test_case: TestCase, num_runs: int) -> TestTimingInfo:
@@ -210,28 +205,15 @@ class DeflakeRunner:
         test_case_dict = self._test_case_to_dict(test_case)
         
         duration_seconds = duration_minutes * 60
+        completed_attempts = 0
         
-        with Progress(
-            TextColumn("[progress.description]"),
-            BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            TextColumn("•"),
-            TimeElapsedColumn(),
-            TextColumn("•"),
-            TimeRemainingColumn(),
+        # Create live dashboard
+        with Live(
+            self._create_dashboard(stats, completed_attempts, duration_seconds, start_time),
             console=self.console,
-            refresh_per_second=4  # Update 4 times per second
-        ) as progress:
-            
-            # Add main progress task based on time elapsed
-            main_task = progress.add_task(
-                f"🚀 Running {test_case.name} ({self.num_processes} processes)",
-                total=100,  # 100% progress based on time
-                completed=0
-            )
-            
-            
-            completed_attempts = 0
+            refresh_per_second=4,
+            screen=False
+        ) as live:
             
             with ProcessPoolExecutor(max_workers=self.num_processes) as executor:
                 futures = []
@@ -259,9 +241,8 @@ class DeflakeRunner:
                             
                             stats.total_time_elapsed = time.time() - start_time
                             
-                            # Update progress based on time elapsed (0-100%)
-                            time_progress = min(100, (stats.total_time_elapsed / duration_seconds) * 100)
-                            progress.update(main_task, completed=time_progress)
+                            # Update live dashboard
+                            live.update(self._create_dashboard(stats, completed_attempts, duration_seconds, start_time))
                             
                             
                             futures.remove(future)
@@ -299,7 +280,50 @@ class DeflakeRunner:
                 for future in futures:
                     future.cancel()
         
+        # After live dashboard ends, show final results
+        self._show_final_results(stats)
+        
         return stats
+    
+    def _create_dashboard(self, stats: DeflakeRunStats, completed_attempts: int, duration_seconds: float, start_time: float):
+        """Create real-time dashboard showing live statistics."""
+        current_time = time.time()
+        elapsed_time = current_time - start_time
+        time_remaining = max(0, duration_seconds - elapsed_time)
+        time_progress = min(100, (elapsed_time / duration_seconds) * 100)
+        
+        # Create main results table
+        table = Table(title="🎯 Live Deflake Session", show_header=True, header_style="bold magenta")
+        table.add_column("Metric", style="cyan", no_wrap=True)
+        table.add_column("Value", style="yellow")
+        
+        success_rate = (stats.successful_runs / max(completed_attempts, 1)) * 100
+        throughput = completed_attempts / max(elapsed_time, 0.001)
+        
+        # Session progress
+        table.add_row("Test Case", stats.test_case.full_name)
+        table.add_row("Progress", f"{time_progress:.1f}% ({self.runner.format_duration(elapsed_time)} / {self.runner.format_duration(duration_seconds)})")
+        table.add_row("Time Remaining", self.runner.format_duration(time_remaining))
+        table.add_row("Processes Used", f"{stats.num_processes}")
+        
+        # Live statistics  
+        table.add_row("", "")  # Separator
+        table.add_row("Total Attempts", f"{completed_attempts:,}")
+        table.add_row("Successful Runs", f"{stats.successful_runs:,}")
+        table.add_row("Failed Runs", f"{stats.failed_runs:,}")
+        table.add_row("Success Rate", f"{success_rate:.2f}%")
+        table.add_row("Throughput", f"{throughput:.1f} tests/sec")
+        
+        # Live timing statistics
+        if stats.per_run_stats:
+            run_stats = self._calculate_actual_run_stats(stats.per_run_stats)
+            table.add_row("", "")  # Separator
+            table.add_row("Median Time", self.runner.format_duration(run_stats.median))
+            table.add_row("Mean Time", self.runner.format_duration(run_stats.mean))
+            table.add_row("Min Time", self.runner.format_duration(run_stats.min_time))
+            table.add_row("Max Time", self.runner.format_duration(run_stats.max_time))
+        
+        return Panel(table, border_style="green", padding=(0, 1))
     
     def _calculate_actual_run_stats(self, run_times: List[float]) -> ActualRunTimeStats:
         """Calculate statistics for actual run times."""
@@ -386,7 +410,6 @@ class DeflakeRunner:
                 self._show_failure_logs(stats.failure_details)
         else:
             self.console.print(f"\n✅ [bold green]All {stats.successful_runs} attempts passed![/bold green]")
-            self.console.print("🎉 No flaky behavior detected in this test.")
     
     def _show_failure_logs(self, failure_details: List[TestRunResult], max_logs: int = 1):
         """Show detailed logs for failed test runs and write them to file."""
