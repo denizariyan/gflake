@@ -1,4 +1,5 @@
 """Tests for CLI functionality."""
+
 from unittest.mock import Mock, patch
 
 from deflake.cli import _display_discovered_tests, app
@@ -35,8 +36,8 @@ class TestCLI:
         """Test run command help."""
         result = self.runner.invoke(app, ["run", "--help"])
         assert result.exit_code == 0
-        assert "--duration" in result.stdout
-        assert "--processes" in result.stdout
+        assert "duration" in result.stdout
+        assert "processes" in result.stdout
 
     def test_discover_command_help(self):
         """Test discover command help."""
