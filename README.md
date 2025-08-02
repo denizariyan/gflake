@@ -1,6 +1,6 @@
 # Deflake - Google Test Deflaking Tool
 
-A CLI tool for deflaking Google Test (gtest) test cases with interactive menus, multiprocess execution, and failure logging.
+A CLI tool to automatically discover, and repeatedly run Google Test (gtest) test cases to identify flaky tests.
 
 ## Features
 
@@ -11,37 +11,29 @@ A CLI tool for deflaking Google Test (gtest) test cases with interactive menus, 
 - **Timing Analysis** - Statistical analysis of test execution times
 - **Failure Logging** - All failed runs logged to `failed_tests.log`
 
+![Deflake Demo](static/deflake.gif)
+
 ## Quick Start
 
 ### 1. Installation
 
+#### From PyPI
+
+TODO: Add PyPI installation instructions
+
+#### From Source
+
+Install Git LFS for large files by following [the instructions](https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage).
+
+Then, clone the repository and install dependencies using Poetry:
+
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone git@github.com:denizariyan/deflake.git
 cd deflake
 
 # Install with Poetry
 poetry install
-```
-
-### 2. Build Your Test Binary
-
-```bash
-# Build the sample C++ tests (optional)
-cd cpp
-mkdir build && cd build
-cmake ..
-make
-```
-
-### 3. Run the Deflake Tool
-
-```bash
-# Interactive mode - select tests from menus
-poetry run deflake run cpp/build/test_binary
-
-# Or use the installed command (after poetry install)
-deflake run cpp/build/test_binary
 ```
 
 ## Usage
@@ -56,9 +48,8 @@ This will:
 
 1. Discover all tests in your binary
 2. Show interactive menus to select test suites and cases
-3. Run timing analysis to estimate test duration
-4. Execute the test repeatedly with progress bars
-5. Show detailed statistics and failure analysis
+3. Execute the test repeatedly with progress bars
+4. Show detailed statistics and failure analysis
 
 ### Command Options
 
@@ -66,8 +57,7 @@ This will:
 deflake run <binary> [OPTIONS]
 
 Options:
-  -d, --duration FLOAT     Duration to run tests in seconds [default: 10.0]
-  -i, --initial-runs INT   Number of initial timing runs [default: 5]
+  -d, --duration FLOAT     Duration to run tests in seconds [default: 5.0]
   -p, --processes INT      Number of parallel processes [default: auto]
   -v, --verbose           Enable verbose output
   --help                  Show help message
@@ -76,14 +66,14 @@ Options:
 ### Examples
 
 ```bash
+# Run for 30 seconds with automatic process count
+deflake run <path-to-your-gtest-binary> --duration 30
+
 # Run for 10 minutes with 4 processes
-deflake run ./my_test_binary --duration 600 --processes 4
+deflake run <path-to-your-gtest-binary> --duration 600 --processes 4
 
-# Quick 30-second test run
-deflake run ./my_test_binary --duration 30
-
-# More initial timing runs for better estimates
-deflake run ./my_test_binary --initial-runs 10
+# Run without parallelisation
+deflake run <path-to-your-gtest-binary> --processes 1
 ```
 
 ### Test Discovery
@@ -93,31 +83,22 @@ deflake run ./my_test_binary --initial-runs 10
 deflake discover <path-to-your-gtest-binary>
 ```
 
-## Sample Output
-
-TODO: add gif
-
 ## Understanding the Output
 
 ### Timing Analysis
 
-- **Median/Mean Time**: Statistical measures of test execution time
-- **Success Rate**: Percentage of successful runs during initial timing calculations
-- **Estimated Attempts**: How many runs are estimated to be run in your target duration
-
-### Session Results
-
+- **Test Case**: Name of the test that was executed
+- **Processes Used**: Number of parallel processes used
+- **Total Attempts**: Total number of test runs executed
+- **Successful Runs**: Number of runs that passed successfully
+- **Failed Runs**: Number of runs that failed
+- **Success Rate**: Percentage of successful runs
+- **Total Duration**: Total time taken for all test runs
 - **Throughput**: Tests executed per second across all processes
-- **Success Rate**: Overall success rate for the entire session
-
-### Actual Run Time Statistics
-
-- **Median/Mean/Min/Max**: Statistics from ALL test runs
-- These reflect real execution times across all parallel processes
+- **Median/Mean/Min/Max Time**: Aggregated statistics for all test runs
 
 ### Failure Analysis
 
-- Failed runs are categorized by error type
 - First few failures shown with full output
 - All failures logged to `failed_tests.log` with timestamps
 
@@ -152,23 +133,34 @@ Simulated flaky test failure (random value: 1)
 # Install dependencies
 poetry install
 
-# Build sample C++ tests
-mkdir -p cpp/build && cd cpp/build && cmake .. && make
+# Build sample C++ binary with gtest
+mkdir -p cpp/build && cd cpp/build && cmake .. && cmake --build .
 
 # Run tests
 ## Python
-poetry run python demo/real_flaky_demo.py
+poetry run pytest tests/
 
 ## C++
-cd cpp/build && ctest --output-on-failure
+cd cpp/build && ctest
+
+# Use sample gtest binary
+## Run using installed deflake
+deflake run cpp/build/test_binary
+
+## Run via poetry
+poetry run deflake run cpp/build/test_binary
 
 # Run linter
 poetry run ruff check src/ tests/ --fix
+
+# Run formatter
+poetry run ruff format src/ tests/
 ```
 
 ## Tips
 
-1. **Start Small**: Begin with short durations (30-60 seconds) to verify your setup
-2. **Adjust Processes**: Use `--processes` to match your system capabilities if the defaults (half of available cores) are not optimal.
-3. **Monitor Logs**: Check `failed_tests.log` for detailed failure analysis
-4. **Use Discovery**: Run `deflake discover` to see all available tests
+- **Start Small**: Begin with short durations (30-60 seconds) to verify your setup
+- **Adjust Processes**: Use `--processes` to match your system capabilities if the defaults (half of available cores) are not optimal.
+  - If your tests share resources (e.g. database operations) or affect each other in any way, consider running with `--processes 1` to avoid interference.
+- **Monitor Logs**: Check `failed_tests.log` for detailed failure analysis
+- **Use Discovery**: Run `deflake discover` to see all available tests
