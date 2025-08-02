@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Main CLI entry point for the deflake tool.
-"""
+"""Main CLI entry point for the gflake tool."""
+
 from pathlib import Path
 from typing import Optional
 
 import typer
 from rich.console import Console
 
-from .deflake_runner import DeflakeRunner
+from .gflake_runner import GflakeRunner
 from .menu_system import TestMenuSystem
 from .test_discovery import GTestDiscovery
 
 app = typer.Typer(
-    name="deflake",
+    name="gFlake",
     help="🎯 A CLI tool for deflaking gtest test cases with interactive menus and progress tracking.",
     add_completion=False,
 )
@@ -44,10 +44,10 @@ def run(
         help="Enable verbose output",
     ),
 ):
-    """🚀 Run the deflake tool interactively.
+    """🚀 Run the gFlake tool interactively.
 
     This will discover tests from the binary, show interactive menus for test selection,
-    and run deflake sessions with progress bars and detailed statistics.
+    and run gFlake sessions with progress bars and detailed statistics.
     """
     try:
         # Validate binary path
@@ -64,7 +64,7 @@ def run(
             )
             raise typer.Exit(1)
 
-        console.print("🎯 [bold blue]Deflake Tool[/bold blue]")
+        console.print("🎯 [bold blue]gFlake Tool[/bold blue]")
         console.print(f"   Binary: [cyan]{binary_path}[/cyan]")
         console.print(f"   Target Duration: [yellow]{duration} seconds[/yellow]")
         if processes:
@@ -81,20 +81,17 @@ def run(
             console.print("   Make sure the binary supports --gtest_list_tests")
             raise typer.Exit(1)
 
-        # Create menu system and deflake runner
         menu_system = TestMenuSystem(str(binary_path))
-        deflake_runner = DeflakeRunner(str(binary_path), num_processes=processes)
+        gflake_runner = GflakeRunner(str(binary_path), num_processes=processes)
 
-        # Use the menu system to select a test case
         selected_test = menu_system.select_test_case()
 
         if selected_test is None:
             console.print("👋 [yellow]Goodbye![/yellow]")
             raise typer.Exit(0)
 
-        # Run deflake session
         console.print()
-        stats = deflake_runner.run_deflake_session(
+        stats = gflake_runner.run_deflake_session(
             test_case=selected_test,
             duration_minutes=duration / 60.0,  # Convert seconds to minutes
         )

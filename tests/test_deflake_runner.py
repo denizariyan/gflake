@@ -1,19 +1,20 @@
-"""Tests for deflake runner functionality."""
+"""Tests for gflake runner functionality."""
+
 from unittest.mock import MagicMock, Mock, patch
 
-from deflake.deflake_runner import DeflakeRunner, DeflakeRunStats
-from deflake.test_discovery import GTestCase
-from deflake.test_runner import GTestRunResult
+from gflake.gflake_runner import GflakeRunner, GflakeRunStats
+from gflake.test_discovery import GTestCase
+from gflake.test_runner import GTestRunResult
 
 
-class TestDeflakeRunner:
-    """Test the DeflakeRunner class."""
+class TestGflakeRunner:
+    """Test the GflakeRunner class."""
 
     def setup_method(self):
         """Set up test fixtures."""
         self.binary_path = "/path/to/test_binary"
         with patch("pathlib.Path.exists", return_value=True):
-            self.runner = DeflakeRunner(self.binary_path, num_processes=2)
+            self.runner = GflakeRunner(self.binary_path, num_processes=2)
         self.test_case = GTestCase(
             name="TestName",
             full_name="Suite.TestName",
@@ -24,13 +25,13 @@ class TestDeflakeRunner:
     @patch("pathlib.Path.exists", return_value=True)
     def test_init_default_processes(self, _mock_exists, _mock_cpu_count):
         """Test initialization with default process count."""
-        runner = DeflakeRunner(self.binary_path)
+        runner = GflakeRunner(self.binary_path)
         assert runner.num_processes == 4  # Half of CPU count
 
     @patch("pathlib.Path.exists", return_value=True)
     def test_init_custom_processes(self, _mock_exists):
         """Test initialization with custom process count."""
-        runner = DeflakeRunner(self.binary_path, num_processes=6)
+        runner = GflakeRunner(self.binary_path, num_processes=6)
         assert runner.num_processes == 6
 
     def test_test_case_to_dict(self):
@@ -71,9 +72,9 @@ class TestDeflakeRunner:
         assert stats.max_time == 0.0
         assert stats.total_runs == 0
 
-    def test_deflake_runner_integration(self):
-        """Test deflake runner creates valid stats objects."""
-        stats = DeflakeRunStats(
+    def test_gflake_runner_integration(self):
+        """Test gflake runner creates valid stats objects."""
+        stats = GflakeRunStats(
             test_case=self.test_case,
             target_duration_minutes=1.0,
             num_processes=2,
@@ -112,7 +113,7 @@ class TestDeflakeRunner:
         assert mock_file.write.call_count > 0
 
         write_calls = [call[0][0] for call in mock_file.write.call_args_list]
-        session_header = any("DEFLAKE SESSION:" in call for call in write_calls)
+        session_header = any("gFlake Session:" in call for call in write_calls)
         assert session_header
 
     @patch("builtins.open", new_callable=MagicMock)
@@ -125,7 +126,7 @@ class TestDeflakeRunner:
         mock_open.assert_not_called()
 
     @patch("builtins.open", side_effect=OSError("Permission denied"))
-    @patch("deflake.deflake_runner.Console")
+    @patch("gflake.gflake_runner.Console")
     def test_write_failures_to_file_error(self, mock_console, mock_open):
         """Test handling of file write errors."""
         failures = [GTestRunResult(False, 0.001, "stdout", "stderr", 1)]

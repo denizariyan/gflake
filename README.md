@@ -1,4 +1,4 @@
-# Deflake - Google Test Deflaking Tool
+# gFlake - Google Test Deflaking Tool
 
 A CLI tool to automatically discover and repeatedly run Google Test (gtest) test cases to identify flaky tests.
 
@@ -11,7 +11,8 @@ A CLI tool to automatically discover and repeatedly run Google Test (gtest) test
 - **Timing Analysis** - Statistical analysis of test execution times
 - **Failure Logging** - All failed runs logged to `failed_tests.log`
 
-![Deflake Demo](static/deflake.gif)
+![gflake Demo](static/gflake.gif)
+TODO: replace the gif with new name
 
 ## Quick Start
 
@@ -29,8 +30,8 @@ Then, clone the repository and install dependencies using Poetry:
 
 ```bash
 # Clone the repository
-git clone git@github.com:denizariyan/deflake.git
-cd deflake
+git clone git@github.com:denizariyan/gflake.git
+cd gflake
 
 # Install with Poetry
 poetry install
@@ -44,7 +45,7 @@ make install
 ### Interactive Mode (Recommended)
 
 ```bash
-deflake run <path-to-your-gtest-binary>
+gflake run <path-to-your-gtest-binary>
 ```
 
 This will:
@@ -57,7 +58,7 @@ This will:
 ### Command Options
 
 ```bash
-deflake run <binary> [OPTIONS]
+gflake run <binary> [OPTIONS]
 
 Options:
   -d, --duration FLOAT     Duration to run tests in seconds [default: 5.0]
@@ -70,20 +71,20 @@ Options:
 
 ```bash
 # Run for 30 seconds with automatic process count
-deflake run <path-to-your-gtest-binary> --duration 30
+gflake run <path-to-your-gtest-binary> --duration 30
 
 # Run for 10 minutes with 4 processes
-deflake run <path-to-your-gtest-binary> --duration 600 --processes 4
+gflake run <path-to-your-gtest-binary> --duration 600 --processes 4
 
 # Run without parallelisation
-deflake run <path-to-your-gtest-binary> --processes 1
+gflake run <path-to-your-gtest-binary> --processes 1
 ```
 
 ### Test Discovery
 
 ```bash
 # List all available tests without running them
-deflake discover <path-to-your-gtest-binary>
+gflake discover <path-to-your-gtest-binary>
 ```
 
 ## Understanding the Output
@@ -111,7 +112,7 @@ Failed test runs are automatically logged to `failed_tests.log`:
 
 ```
 ================================================================================
-DEFLAKE SESSION: 2025-07-31 21:17:44
+gFlake Session: 2025-07-31 21:17:44
 Total Failed Runs: 3157
 ================================================================================
 
@@ -153,11 +154,11 @@ make test-cpp        # Without flaky test
 make test-cpp-all    # With flaky test
 
 # Use sample gtest binary
-## Run using installed deflake
-deflake run cpp/build/test_binary
+## Run using installed gflake
+gflake run cpp/build/test_binary
 
 ## Run via poetry
-poetry run deflake run cpp/build/test_binary
+poetry run gflake run cpp/build/test_binary
 
 # Run linter
 make lint-fix
@@ -172,4 +173,4 @@ make format
 - **Adjust Processes**: Use `--processes` to match your system capabilities if the defaults (half of available cores) are not optimal.
   - If your tests share resources (e.g. database operations) or affect each other in any way, consider running with `--processes 1` to avoid interference.
 - **Monitor Logs**: Check `failed_tests.log` for detailed failure analysis
-- **Use Discovery**: Run `deflake discover` to see all available tests
+- **Use Discovery**: Run `gflake discover` to see all available tests

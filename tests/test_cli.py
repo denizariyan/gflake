@@ -2,9 +2,9 @@
 
 from unittest.mock import Mock, patch
 
-from deflake.cli import _display_discovered_tests, app
-from deflake.deflake_runner import DeflakeRunStats
-from deflake.test_discovery import GTestCase, GTestSuite
+from gflake.cli import _display_discovered_tests, app
+from gflake.gflake_runner import GflakeRunStats
+from gflake.test_discovery import GTestCase, GTestSuite
 from typer.testing import CliRunner
 
 
@@ -28,7 +28,7 @@ class TestCLI:
         """Test CLI help command."""
         result = self.runner.invoke(app, ["--help"])
         assert result.exit_code == 0
-        assert "deflake" in result.stdout.lower()
+        assert "gflake" in result.stdout.lower()
         assert "run" in result.stdout
         assert "discover" in result.stdout
 
@@ -45,8 +45,8 @@ class TestCLI:
         assert result.exit_code == 0
         assert result.stdout  # Non-empty help output
 
-    @patch("deflake.cli.GTestDiscovery")
-    @patch("deflake.cli._display_discovered_tests")
+    @patch("gflake.cli.GTestDiscovery")
+    @patch("gflake.cli._display_discovered_tests")
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.is_file", return_value=True)
     def test_discover_command_success(
@@ -77,7 +77,7 @@ class TestCLI:
         assert result.exit_code == 1
         assert result.stdout
 
-    @patch("deflake.cli.GTestDiscovery")
+    @patch("gflake.cli.GTestDiscovery")
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.is_file", return_value=True)
     def test_discover_command_no_tests(self, mock_is_file, mock_exists, mock_discovery):
@@ -92,9 +92,9 @@ class TestCLI:
         assert result.exit_code == 1
         assert result.stdout
 
-    @patch("deflake.cli.GTestDiscovery")
-    @patch("deflake.cli.TestMenuSystem")
-    @patch("deflake.cli.DeflakeRunner")
+    @patch("gflake.cli.GTestDiscovery")
+    @patch("gflake.cli.TestMenuSystem")
+    @patch("gflake.cli.GflakeRunner")
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.is_file", return_value=True)
     def test_run_command_no_flaky_behavior(
@@ -118,7 +118,7 @@ class TestCLI:
 
         # Setup runner mock
         mock_runner_instance = Mock()
-        mock_stats = DeflakeRunStats(
+        mock_stats = GflakeRunStats(
             test_case=self.test_case,
             target_duration_minutes=1.0,
             num_processes=2,
@@ -132,9 +132,9 @@ class TestCLI:
         assert result.exit_code == 0
         assert "no flaky behavior detected" in result.stdout.lower()
 
-    @patch("deflake.cli.GTestDiscovery")
-    @patch("deflake.cli.TestMenuSystem")
-    @patch("deflake.cli.DeflakeRunner")
+    @patch("gflake.cli.GTestDiscovery")
+    @patch("gflake.cli.TestMenuSystem")
+    @patch("gflake.cli.GflakeRunner")
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.is_file", return_value=True)
     def test_run_command_flaky_behavior_detected(
@@ -158,7 +158,7 @@ class TestCLI:
 
         # Setup runner mock
         mock_runner_instance = Mock()
-        mock_stats = DeflakeRunStats(
+        mock_stats = GflakeRunStats(
             test_case=self.test_case,
             target_duration_minutes=1.0,
             num_processes=2,
@@ -172,8 +172,8 @@ class TestCLI:
         assert result.exit_code == 1
         assert "flaky behavior detected" in result.stdout.lower()
 
-    @patch("deflake.cli.GTestDiscovery")
-    @patch("deflake.cli.TestMenuSystem")
+    @patch("gflake.cli.GTestDiscovery")
+    @patch("gflake.cli.TestMenuSystem")
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.is_file", return_value=True)
     def test_run_command_user_cancellation(
@@ -199,9 +199,9 @@ class TestCLI:
         assert result.exit_code == 0
         assert result.stdout
 
-    @patch("deflake.cli.GTestDiscovery")
-    @patch("deflake.cli.TestMenuSystem")
-    @patch("deflake.cli.DeflakeRunner")
+    @patch("gflake.cli.GTestDiscovery")
+    @patch("gflake.cli.TestMenuSystem")
+    @patch("gflake.cli.GflakeRunner")
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.is_file", return_value=True)
     def test_run_command_custom_options(
@@ -220,7 +220,7 @@ class TestCLI:
         mock_menu_class.return_value.select_test_case.return_value = self.test_case
 
         mock_runner_instance = Mock()
-        mock_stats = DeflakeRunStats(
+        mock_stats = GflakeRunStats(
             test_case=self.test_case,
             target_duration_minutes=2.0,  # 120 seconds = 2 minutes
             num_processes=4,
@@ -249,7 +249,7 @@ class TestCLI:
         call_args = mock_runner_instance.run_deflake_session.call_args
         assert call_args[1]["duration_minutes"] == 2.0  # 120/60 = 2.0
 
-    @patch("deflake.cli.console")
+    @patch("gflake.cli.console")
     def test_display_discovered_tests(self, _mock_console):
         """Test the display_discovered_tests function."""
         suites = {
@@ -276,7 +276,7 @@ class TestCLI:
         # Should not raise any exceptions
         _display_discovered_tests(suites)
 
-    @patch("deflake.cli.console")
+    @patch("gflake.cli.console")
     def test_display_discovered_tests_empty(self, _mock_console):
         """Test display_discovered_tests with empty suites."""
         # Should not raise any exceptions
@@ -291,9 +291,9 @@ class TestCLI:
         assert result.exit_code == 1
         assert result.stdout
 
-    @patch("deflake.cli.GTestDiscovery")
-    @patch("deflake.cli.TestMenuSystem")
-    @patch("deflake.cli.DeflakeRunner")
+    @patch("gflake.cli.GTestDiscovery")
+    @patch("gflake.cli.TestMenuSystem")
+    @patch("gflake.cli.GflakeRunner")
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.is_file", return_value=True)
     def test_duration_conversion(
@@ -312,7 +312,7 @@ class TestCLI:
         mock_menu_class.return_value.select_test_case.return_value = self.test_case
 
         mock_runner_instance = Mock()
-        mock_stats = DeflakeRunStats(
+        mock_stats = GflakeRunStats(
             test_case=self.test_case,
             target_duration_minutes=2.0,  # Expected after conversion
             num_processes=2,

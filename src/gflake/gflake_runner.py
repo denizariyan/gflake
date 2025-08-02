@@ -1,4 +1,4 @@
-"""Main deflake runner with progress bars and attempt estimation."""
+"""Main gflake runner with progress bars and attempt estimation."""
 
 import datetime
 import os
@@ -57,8 +57,8 @@ class ActualRunTimeStats:
 
 
 @dataclass
-class DeflakeRunStats:
-    """Statistics for a deflake run session."""
+class GflakeRunStats:
+    """Statistics for a gflake run session."""
 
     test_case: GTestCase
     target_duration_minutes: float
@@ -73,8 +73,8 @@ class DeflakeRunStats:
     )  # Track all individual run times
 
 
-class DeflakeRunner:
-    """Main deflake runner with progress tracking and statistics."""
+class GflakeRunner:
+    """Main gflake runner with progress tracking and statistics."""
 
     def __init__(self, binary_path: str, num_processes: Optional[int] = None):
         self.binary_path = binary_path
@@ -104,8 +104,8 @@ class DeflakeRunner:
         self,
         test_case: GTestCase,
         duration_minutes: float,
-    ) -> DeflakeRunStats:
-        """Run a complete deflake session with progress tracking.
+    ) -> GflakeRunStats:
+        """Run a complete gflake session with progress tracking.
 
         Args:
         ----
@@ -114,10 +114,10 @@ class DeflakeRunner:
 
         Returns:
         -------
-            DeflakeRunStats with complete session statistics
+            GflakeRunStats with complete session statistics
 
         """
-        self.console.print("🎯 [bold blue]Starting Deflake Session[/bold blue]")
+        self.console.print("🎯 [bold blue]Starting gflake Session[/bold blue]")
         self.console.print(f"   Test: [cyan]{test_case.full_name}[/cyan]")
         self.console.print(
             f"   Duration: [yellow]{self.runner.format_duration(duration_minutes * 60)}[/yellow]",
@@ -215,9 +215,9 @@ class DeflakeRunner:
         self,
         test_case: GTestCase,
         duration_minutes: float,
-    ) -> DeflakeRunStats:
-        """Run the main deflake attempts with multiprocessing and live progress tracking."""
-        stats = DeflakeRunStats(
+    ) -> GflakeRunStats:
+        """Run the main gflake attempts with multiprocessing and live progress tracking."""
+        stats = GflakeRunStats(
             test_case=test_case,
             target_duration_minutes=duration_minutes,
             num_processes=self.num_processes,
@@ -326,7 +326,7 @@ class DeflakeRunner:
 
     def _create_dashboard(
         self,
-        stats: DeflakeRunStats,
+        stats: GflakeRunStats,
         completed_attempts: int,
         duration_seconds: float,
         start_time: float,
@@ -339,7 +339,7 @@ class DeflakeRunner:
 
         # Create main results table
         table = Table(
-            title="🎯 Live Deflake Session",
+            title="🎯 Live gFlake Session",
             show_header=True,
             header_style="bold magenta",
         )
@@ -397,10 +397,10 @@ class DeflakeRunner:
             total_runs=len(run_times),
         )
 
-    def _show_final_results(self, stats: DeflakeRunStats):
+    def _show_final_results(self, stats: GflakeRunStats):
         """Display comprehensive final results."""
         self.console.print("\n" + "=" * 60)
-        self.console.print("🏁 [bold green]Deflake Session Complete[/bold green]")
+        self.console.print("🏁 [bold green]gFlake Session Complete[/bold green]")
         self.console.print("=" * 60)
 
         results_table = Table(title="📋 Session Results")
@@ -559,7 +559,7 @@ class DeflakeRunner:
                 # Write session header
                 timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 f.write(f"\n{'=' * 80}\n")
-                f.write(f"DEFLAKE SESSION: {timestamp}\n")
+                f.write(f"gFlake Session: {timestamp}\n")
                 f.write(f"Total Failed Runs: {len(failure_details)}\n")
                 f.write(f"{'=' * 80}\n\n")
 
@@ -591,7 +591,7 @@ class DeflakeRunner:
                 f"\n⚠️  [yellow]Warning: Could not write to failed_tests.log: {e}[/yellow]",
             )
 
-    def get_session_summary(self, stats: DeflakeRunStats) -> str:
+    def get_session_summary(self, stats: GflakeRunStats) -> str:
         """Get a brief text summary of the session."""
         success_rate = (stats.successful_runs / stats.actual_attempts * 100) if stats.actual_attempts > 0 else 0
 

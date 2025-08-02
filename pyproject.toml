@@ -1,5 +1,5 @@
 [project]
-name = "deflake"
+name = "gflake"
 version = "0.1.0"
 description = ""
 authors = [
@@ -20,10 +20,10 @@ test = [
 ]
 
 [project.scripts]
-deflake = "deflake.cli:main"
+gflake = "gflake.cli:main"
 
 [tool.poetry]
-packages = [{include = "deflake", from = "src"}]
+packages = [{include = "gflake", from = "src"}]
 
 
 [tool.poetry.group.dev.dependencies]

@@ -58,6 +58,6 @@ jobs:
 
       - name: Discover tests in binary
         run: |
-          poetry run deflake discover cpp/build/test_binary
+          poetry run gflake discover cpp/build/test_binary
 
 # TODO: add a way to select test name by args and run it here

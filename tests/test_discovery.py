@@ -1,8 +1,9 @@
 """Tests for test discovery functionality."""
+
 from unittest.mock import patch
 
 import pytest
-from deflake.test_discovery import GTestCase, GTestDiscovery
+from gflake.test_discovery import GTestCase, GTestDiscovery
 
 
 class TestTestDiscovery:

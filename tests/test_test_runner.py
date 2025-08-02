@@ -2,8 +2,8 @@
 
 from unittest.mock import patch
 
-from deflake.test_discovery import GTestCase
-from deflake.test_runner import GTestRunner, GTestRunResult
+from gflake.test_discovery import GTestCase
+from gflake.test_runner import GTestRunner, GTestRunResult
 
 
 class TestTestRunner:
