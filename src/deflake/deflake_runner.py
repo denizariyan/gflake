@@ -14,8 +14,8 @@ from rich.live import Live
 from rich.layout import Layout
 import statistics
 
-from .test_discovery import TestCase
-from .test_runner import TestRunner, TestRunResult, TestTimingInfo
+from .test_discovery import GTestCase
+from .test_runner import GTestRunner, GTestRunResult, GTestTimingInfo
 
 
 def _run_single_test_worker(args):
@@ -23,7 +23,7 @@ def _run_single_test_worker(args):
     binary_path, test_case_dict, timeout = args
     
     # Reconstruct TestCase from dict (needed for multiprocessing)
-    test_case = TestCase(
+    test_case = GTestCase(
         name=test_case_dict['name'],
         full_name=test_case_dict['full_name'],
         suite_name=test_case_dict['suite_name'],
@@ -34,7 +34,7 @@ def _run_single_test_worker(args):
     )
     
     # Create runner and execute test
-    runner = TestRunner(binary_path)
+    runner = GTestRunner(binary_path)
     return runner.run_test_once(test_case, timeout)
 
 
@@ -51,14 +51,14 @@ class ActualRunTimeStats:
 @dataclass
 class DeflakeRunStats:
     """Statistics for a deflake run session."""
-    test_case: TestCase
+    test_case: GTestCase
     target_duration_minutes: float
     num_processes: int = 1
     actual_attempts: int = 0
     successful_runs: int = 0
     failed_runs: int = 0
     total_time_elapsed: float = 0.0  # in seconds
-    failure_details: List[TestRunResult] = field(default_factory=list)
+    failure_details: List[GTestRunResult] = field(default_factory=list)
     per_run_stats: List[float] = field(default_factory=list)  # Track all individual run times
 
 
@@ -67,7 +67,7 @@ class DeflakeRunner:
     
     def __init__(self, binary_path: str, num_processes: Optional[int] = None):
         self.binary_path = binary_path
-        self.runner = TestRunner(binary_path)
+        self.runner = GTestRunner(binary_path)
         self.console = Console()
         
         # Set number of processes (default to half of available cores, min 1)
@@ -77,7 +77,7 @@ class DeflakeRunner:
         else:
             self.num_processes = max(1, num_processes)
     
-    def _test_case_to_dict(self, test_case: TestCase) -> dict:
+    def _test_case_to_dict(self, test_case: GTestCase) -> dict:
         """Convert TestCase to dict for multiprocessing."""
         return {
             'name': test_case.name,
@@ -91,7 +91,7 @@ class DeflakeRunner:
     
     def run_deflake_session(
         self, 
-        test_case: TestCase, 
+        test_case: GTestCase, 
         duration_minutes: float
     ) -> DeflakeRunStats:
         """
@@ -114,7 +114,7 @@ class DeflakeRunner:
         
         return stats
     
-    def _measure_initial_timing(self, test_case: TestCase, num_runs: int) -> TestTimingInfo:
+    def _measure_initial_timing(self, test_case: GTestCase, num_runs: int) -> GTestTimingInfo:
         """Measure initial timing with progress bar."""
         with Progress(
             SpinnerColumn(),
@@ -150,7 +150,7 @@ class DeflakeRunner:
             # Calculate success rate
             success_rate = len(successful_runs) / len(runs) if runs else 0.0
             
-            timing_info = TestTimingInfo(
+            timing_info = GTestTimingInfo(
                 test_case=test_case,
                 runs=runs,
                 median_duration=median_duration,
@@ -165,7 +165,7 @@ class DeflakeRunner:
     
     def _show_estimation_summary(
         self, 
-        timing_info: TestTimingInfo, 
+        timing_info: GTestTimingInfo, 
         duration_minutes: float, 
         estimated_attempts: int
     ):
@@ -187,7 +187,7 @@ class DeflakeRunner:
     
     def _run_deflake_attempts(
         self, 
-        test_case: TestCase, 
+        test_case: GTestCase, 
         duration_minutes: float
     ) -> DeflakeRunStats:
         """Run the main deflake attempts with multiprocessing and live progress tracking."""
@@ -264,7 +264,7 @@ class DeflakeRunner:
                             stats.failed_runs += 1
                             
                             # Create error result
-                            error_result = TestRunResult(
+                            error_result = GTestRunResult(
                                 success=False,
                                 duration=0.0,
                                 stdout="",
@@ -411,7 +411,7 @@ class DeflakeRunner:
         else:
             self.console.print(f"\n✅ [bold green]All {stats.successful_runs} attempts passed![/bold green]")
     
-    def _show_failure_logs(self, failure_details: List[TestRunResult], max_logs: int = 1):
+    def _show_failure_logs(self, failure_details: List[GTestRunResult], max_logs: int = 1):
         """Show detailed logs for failed test runs and write them to file."""
         if not failure_details:
             return
@@ -466,7 +466,7 @@ class DeflakeRunner:
         # Notify user about the log file
         self.console.print(f"\n💾 [dim]All {len(failure_details)} failed test runs logged to: failed_tests.log[/dim]")
     
-    def _write_failures_to_file(self, failure_details: List[TestRunResult]):
+    def _write_failures_to_file(self, failure_details: List[GTestRunResult]):
         """Write all failed test run outputs to failed_tests.log file."""
         if not failure_details:
             return

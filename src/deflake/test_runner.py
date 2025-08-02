@@ -8,11 +8,11 @@ from dataclasses import dataclass
 from typing import List, Optional, Tuple
 from pathlib import Path
 
-from .test_discovery import TestCase
+from .test_discovery import GTestCase
 
 
 @dataclass
-class TestRunResult:
+class GTestRunResult:
     """Result of a single test run."""
     success: bool
     duration: float  # in seconds
@@ -22,10 +22,10 @@ class TestRunResult:
 
 
 @dataclass
-class TestTimingInfo:
+class GTestTimingInfo:
     """Timing statistics for a test case."""
-    test_case: TestCase
-    runs: List[TestRunResult]
+    test_case: GTestCase
+    runs: List[GTestRunResult]
     median_duration: float
     mean_duration: float
     min_duration: float
@@ -34,7 +34,7 @@ class TestTimingInfo:
     total_runs: int
 
 
-class TestRunner:
+class GTestRunner:
     """Runs gtest cases and measures their timing."""
     
     def __init__(self, binary_path: str):
@@ -42,7 +42,7 @@ class TestRunner:
         if not self.binary_path.exists():
             raise FileNotFoundError(f"Test binary not found: {binary_path}")
     
-    def run_test_once(self, test_case: TestCase, timeout: Optional[float] = None) -> TestRunResult:
+    def run_test_once(self, test_case: GTestCase, timeout: Optional[float] = None) -> GTestRunResult:
         """
         Run a single test case once and measure timing.
         
@@ -74,7 +74,7 @@ class TestRunner:
             end_time = time.perf_counter()
             duration = end_time - start_time  # Keep in seconds
             
-            return TestRunResult(
+            return GTestRunResult(
                 success=(result.returncode == 0),
                 duration=duration,
                 stdout=result.stdout,
@@ -86,7 +86,7 @@ class TestRunner:
             end_time = time.perf_counter()
             duration = end_time - start_time  # Keep in seconds
             
-            return TestRunResult(
+            return GTestRunResult(
                 success=False,
                 duration=duration,
                 stdout="",
@@ -98,7 +98,7 @@ class TestRunner:
             end_time = time.perf_counter()
             duration = end_time - start_time  # Keep in seconds
             
-            return TestRunResult(
+            return GTestRunResult(
                 success=False,
                 duration=duration,
                 stdout="",
@@ -108,10 +108,10 @@ class TestRunner:
     
     def measure_test_timing(
         self, 
-        test_case: TestCase, 
+        test_case: GTestCase, 
         num_runs: int = 5,
         timeout: Optional[float] = None
-    ) -> TestTimingInfo:
+    ) -> GTestTimingInfo:
         """
         Run a test multiple times to measure timing statistics.
         
@@ -142,7 +142,7 @@ class TestRunner:
         # Calculate success rate
         success_rate = len(successful_runs) / len(runs) if runs else 0.0
         
-        return TestTimingInfo(
+        return GTestTimingInfo(
             test_case=test_case,
             runs=runs,
             median_duration=median_duration,
@@ -153,34 +153,6 @@ class TestRunner:
             total_runs=len(runs)
         )
     
-    def estimate_attempts_for_duration(
-        self, 
-        timing_info: TestTimingInfo, 
-        target_duration_minutes: float
-    ) -> int:
-        """
-        Estimate how many test attempts can fit in the target duration.
-        
-        Args:
-            timing_info: Timing information from initial runs
-            target_duration_minutes: Target duration in minutes
-            
-        Returns:
-            Estimated number of attempts
-        """
-        target_seconds = target_duration_minutes * 60
-        
-        # Use median duration as the best estimate
-        # Add 10% buffer for overhead and variance
-        estimated_time_per_run = timing_info.median_duration * 1.1
-        
-        if estimated_time_per_run <= 0:
-            return 0
-        
-        estimated_attempts = int(target_seconds / estimated_time_per_run)
-        
-        # Always run at least 1 attempt
-        return max(1, min(estimated_attempts, 100_000_000))
     
     def format_duration(self, seconds: float) -> str:
         """Format duration in a human-readable way."""
@@ -192,15 +164,3 @@ class TestRunner:
             minutes = int(seconds // 60)
             remaining_seconds = seconds % 60
             return f"{minutes}m {remaining_seconds:.1f}s"
-    
-    def get_timing_summary(self, timing_info: TestTimingInfo) -> str:
-        """Get a formatted summary of timing information."""
-        lines = []
-        lines.append(f"Test: {timing_info.test_case.full_name}")
-        lines.append(f"Runs: {timing_info.total_runs}")
-        lines.append(f"Success Rate: {timing_info.success_rate:.1%}")
-        lines.append(f"Median Time: {self.format_duration(timing_info.median_duration)}")
-        lines.append(f"Mean Time: {self.format_duration(timing_info.mean_duration)}")
-        lines.append(f"Range: {self.format_duration(timing_info.min_duration)} - {self.format_duration(timing_info.max_duration)}")
-        
-        return "\n".join(lines)

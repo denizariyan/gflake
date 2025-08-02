@@ -13,12 +13,21 @@ dependencies = [
     "questionary>=2.0.0",
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest>=6.0.0,<8.0.0",
+    "pytest-cov>=2.0.0,<4.0.0",
+]
+
 [project.scripts]
 deflake = "deflake.cli:main"
 
 [tool.poetry]
 packages = [{include = "deflake", from = "src"}]
 
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=6.0.0,<8.0.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

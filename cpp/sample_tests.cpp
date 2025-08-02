@@ -28,15 +28,14 @@ TEST_F(BasicTests, LongRunningTest) {
     EXPECT_TRUE(true);
 }
 
+// A flaky test that fails ~10% of the time
 TEST_F(BasicTests, FlakyTest) {
-    // Create a flaky test that fails ~10% of the time
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dis(1, 10);
     
     int random_value = dis(gen);
     
-    // Fail if we get a 1 (10% chance)
     if (random_value == 1) {
         FAIL() << "Simulated flaky test failure (random value: " << random_value << ")";
     }

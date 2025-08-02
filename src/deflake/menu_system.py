@@ -7,7 +7,7 @@ from rich.console import Console
 from rich.tree import Tree
 from rich.panel import Panel
 
-from .test_discovery import TestDiscovery, TestSuite, TestCase
+from .test_discovery import GTestDiscovery, GTestSuite, GTestCase
 
 
 class MenuAction:
@@ -31,11 +31,11 @@ class TestMenuSystem:
     """Interactive menu system for selecting test cases."""
     
     def __init__(self, binary_path: str, suites: Optional[dict] = None):
-        self.discovery = TestDiscovery(binary_path)
+        self.discovery = GTestDiscovery(binary_path)
         self.console = Console()
         self.suites = suites
     
-    def select_test_case(self) -> Optional[TestCase]:
+    def select_test_case(self) -> Optional[GTestCase]:
         """
         Interactive menu to select a test case.
         
@@ -82,7 +82,7 @@ class TestMenuSystem:
             self.console.print(f"❌ Error: {e}")
             return None
     
-    def _select_suite(self) -> Union[TestSuite, ExitAction]:
+    def _select_suite(self) -> Union[GTestSuite, ExitAction]:
         """Select a test suite from available suites."""
         # Create choices with detailed information
         choices = []
@@ -114,7 +114,7 @@ class TestMenuSystem:
         
         return suite
     
-    def _select_test_case_from_suite(self, suite: TestSuite) -> Union[TestCase, BackAction, None]:
+    def _select_test_case_from_suite(self, suite: GTestSuite) -> Union[GTestCase, BackAction, None]:
         """Select a test case from within a suite."""
         if len(suite.cases) == 1:
             # Only one test case, confirm selection
@@ -185,7 +185,7 @@ class TestMenuSystem:
         self.console.print(panel)
         self.console.print()
     
-    def _show_suite_details(self, suite: TestSuite):
+    def _show_suite_details(self, suite: GTestSuite):
         """Show detailed information about a test suite."""
         tree = Tree(f"📁 [bold yellow]{suite.name}[/bold yellow]")
         
@@ -205,7 +205,7 @@ class TestMenuSystem:
         
         self.console.print()
     
-    def _show_test_case_details(self, case: TestCase):
+    def _show_test_case_details(self, case: GTestCase):
         """Show detailed information about a test case."""
         details = []
         details.append(f"[bold]Full Name:[/bold] {case.full_name}")
@@ -227,7 +227,7 @@ class TestMenuSystem:
         self.console.print(panel)
         self.console.print()
     
-    def show_selection_summary(self, test_case: TestCase):
+    def show_selection_summary(self, test_case: GTestCase):
         """Show a summary of the selected test case."""
         self.console.print(f"✅ Selected: [bold green]{test_case.full_name}[/bold green]")
         

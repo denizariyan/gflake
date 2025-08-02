@@ -11,7 +11,7 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 
-from .test_discovery import TestDiscovery
+from .test_discovery import GTestDiscovery
 from .menu_system import TestMenuSystem, ExitAction
 from .deflake_runner import DeflakeRunner
 
@@ -72,7 +72,7 @@ def run(
         
         # Discover tests
         console.print("🔍 [bold]Discovering tests...[/bold]")
-        discovery = TestDiscovery(str(binary_path))
+        discovery = GTestDiscovery(str(binary_path))
         suites = discovery.discover_tests()
         
         if not suites:
@@ -141,7 +141,7 @@ def discover(
         console.print()
         
         # Discover tests
-        discovery = TestDiscovery(str(binary_path))
+        discovery = GTestDiscovery(str(binary_path))
         suites = discovery.discover_tests()
         
         if not suites:

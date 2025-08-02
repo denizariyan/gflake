@@ -153,9 +153,9 @@ Simulated flaky test failure (random value: 1)
 poetry install
 
 # Build sample C++ tests
-cd cpp && mkdir build && cd build && cmake .. && make
+mkdir -p cpp/build && cd cpp/build && cmake .. && make
 
-# Run demo e.g.
+# Run tests e.g.
 poetry run python demo/real_flaky_demo.py
 ```
 

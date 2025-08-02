@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 @dataclass
-class TestCase:
+class GTestCase:
     """Represents a single test case."""
     name: str
     full_name: str
@@ -21,15 +21,15 @@ class TestCase:
 
 
 @dataclass
-class TestSuite:
+class GTestSuite:
     """Represents a test suite containing multiple test cases."""
     name: str
-    cases: List[TestCase]
+    cases: List[GTestCase]
     is_parameterized: bool = False
     is_typed: bool = False
 
 
-class TestDiscovery:
+class GTestDiscovery:
     """Discovers and parses Google Test cases from a binary."""
     
     def __init__(self, binary_path: str):
@@ -37,7 +37,7 @@ class TestDiscovery:
         if not self.binary_path.exists():
             raise FileNotFoundError(f"Test binary not found: {binary_path}")
     
-    def discover_tests(self) -> Dict[str, TestSuite]:
+    def discover_tests(self) -> Dict[str, GTestSuite]:
         """
         Discover all tests by running the binary with --gtest_list_tests.
         
@@ -60,7 +60,7 @@ class TestDiscovery:
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Failed to run gtest binary: {e}")
     
-    def _parse_test_output(self, output: str) -> Dict[str, TestSuite]:
+    def _parse_test_output(self, output: str) -> Dict[str, GTestSuite]:
         """
         Parse the output from --gtest_list_tests.
         
@@ -125,7 +125,7 @@ class TestDiscovery:
         
         return suites
     
-    def _parse_test_case(self, case_line: str, suite_name: str, suite_type_info: Optional[str] = None) -> Optional[TestCase]:
+    def _parse_test_case(self, case_line: str, suite_name: str, suite_type_info: Optional[str] = None) -> Optional[GTestCase]:
         """
         Parse a single test case line.
         
@@ -167,7 +167,7 @@ class TestDiscovery:
         # Create full test name for gtest execution
         full_name = f"{suite_name}.{test_name}"
         
-        return TestCase(
+        return GTestCase(
             name=test_name,
             full_name=full_name,
             suite_name=suite_name,
@@ -177,19 +177,19 @@ class TestDiscovery:
             parameter_value=parameter_value
         )
     
-    def _create_test_suite(self, suite_name: str, cases: List[TestCase], suite_type_info: Optional[str] = None) -> TestSuite:
+    def _create_test_suite(self, suite_name: str, cases: List[GTestCase], suite_type_info: Optional[str] = None) -> GTestSuite:
         """Create a TestSuite object from parsed cases."""
         is_parameterized = any(case.is_parameterized for case in cases)
         is_typed = any(case.is_typed for case in cases)
         
-        return TestSuite(
+        return GTestSuite(
             name=suite_name,
             cases=cases,
             is_parameterized=is_parameterized,
             is_typed=is_typed
         )
     
-    def get_test_case_by_full_name(self, full_name: str) -> Optional[TestCase]:
+    def get_test_case_by_full_name(self, full_name: str) -> Optional[GTestCase]:
         """Find a test case by its full name (Suite.TestCase)."""
         suites = self.discover_tests()
         for suite in suites.values():
