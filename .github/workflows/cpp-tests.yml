@@ -1,0 +1,63 @@
+name: C++ Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [gcc, clang]
+        build_type: [Release, Debug]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential
+
+      - name: Install clang
+        if: matrix.compiler == 'clang'
+        run: |
+          sudo apt-get install -y clang
+
+      - name: Install Google Test
+        run: |
+          # Install googletest from package manager
+          sudo apt-get install -y libgtest-dev libgmock-dev
+
+      - name: Set clang environment
+        if: matrix.compiler == 'clang'
+        run: |
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
+
+      - name: Configure CMake
+        run: |
+          mkdir -p cpp/build
+          cd cpp/build
+          cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: Build
+        run: |
+          cd cpp/build
+          cmake --build . --config ${{ matrix.build_type }}
+
+      - name: Run tests (excluding flaky test)
+        run: |
+          cd cpp/build
+          # Run all tests except the intentionally flaky one
+          ./test_binary --gtest_filter=-BasicTests.FlakyTest --gtest_output=xml:test_results.xml
+
+      - name: Run flaky test separately (allow failure)
+        run: |
+          cd cpp/build
+          # Run the flaky test separately and allow it to fail
+          ./test_binary --gtest_filter=BasicTests.FlakyTest --gtest_output=xml:flaky_test_results.xml || echo "Flaky test failed as expected"
+        continue-on-error: true

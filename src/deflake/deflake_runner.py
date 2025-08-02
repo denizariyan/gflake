@@ -1,5 +1,6 @@
 """Main deflake runner with progress bars and attempt estimation."""
 
+import datetime
 import os
 import statistics
 import time
@@ -388,8 +389,6 @@ class DeflakeRunner:
                 total_runs=0,
             )
 
-        import statistics
-
         return ActualRunTimeStats(
             median=statistics.median(run_times),
             mean=statistics.mean(run_times),
@@ -554,8 +553,6 @@ class DeflakeRunner:
         """Write all failed test run outputs to failed_tests.log file."""
         if not failure_details:
             return
-
-        import datetime
 
         try:
             with open("failed_tests.log", "a", encoding="utf-8") as f:

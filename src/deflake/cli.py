@@ -127,8 +127,7 @@ def discover(
         help="Path to the gtest binary to discover tests from",
     ),
 ):
-    """🔍 Discover and list all available tests from a gtest binary.
-    """
+    """🔍 Discover and list all available tests from a gtest binary."""
     try:
         # Validate binary path
         binary_path = Path(binary_path).resolve()
