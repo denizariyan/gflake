@@ -62,7 +62,7 @@ class DeflakeRunStats:
     failed_runs: int = 0
     total_time_elapsed: float = 0.0  # in seconds
     failure_details: List[TestRunResult] = field(default_factory=list)
-    actual_run_times: List[float] = field(default_factory=list)  # Track all individual run times
+    per_run_stats: List[float] = field(default_factory=list)  # Track all individual run times
 
 
 class DeflakeRunner:
@@ -250,7 +250,7 @@ class DeflakeRunner:
                             completed_attempts += 1
                             
                             stats.actual_attempts = completed_attempts
-                            stats.actual_run_times.append(result.duration)  # Track individual run time
+                            stats.per_run_stats.append(result.duration)  # Track individual run time
                             if result.success:
                                 stats.successful_runs += 1
                             else:
@@ -328,13 +328,13 @@ class DeflakeRunner:
         self.console.print("🏁 [bold green]Deflake Session Complete[/bold green]")
         self.console.print("="*60)
         
-        # Main results table
         results_table = Table(title="📋 Session Results")
         results_table.add_column("Metric", style="cyan")
         results_table.add_column("Value", style="yellow")
         
         success_rate = (stats.successful_runs / stats.actual_attempts * 100) if stats.actual_attempts > 0 else 0
         
+        # Session information
         results_table.add_row("Test Case", stats.test_case.full_name)
         results_table.add_row("Processes Used", f"{stats.num_processes}")
         results_table.add_row("Total Attempts", f"{stats.actual_attempts:,}")
@@ -344,23 +344,16 @@ class DeflakeRunner:
         results_table.add_row("Total Time", self.runner.format_duration(stats.total_time_elapsed))
         results_table.add_row("Throughput", f"{stats.actual_attempts / max(stats.total_time_elapsed, 0.001):.1f} tests/sec")
         
-        self.console.print(results_table)
+        # Add timing statistics if available
+        if stats.per_run_stats:
+            run_stats = self._calculate_actual_run_stats(stats.per_run_stats)
+            results_table.add_row("", "")  # Empty row for separation
+            results_table.add_row("Median Time", self.runner.format_duration(run_stats.median))
+            results_table.add_row("Mean Time", self.runner.format_duration(run_stats.mean))
+            results_table.add_row("Min Time", self.runner.format_duration(run_stats.min_time))
+            results_table.add_row("Max Time", self.runner.format_duration(run_stats.max_time))
         
-        # Show actual run time statistics
-        if stats.actual_run_times:
-            run_stats = self._calculate_actual_run_stats(stats.actual_run_times)
-            
-            timing_table = Table(title="⏱️ Actual Run Time Statistics")
-            timing_table.add_column("Statistic", style="cyan")
-            timing_table.add_column("Value", style="yellow")
-            
-            timing_table.add_row("Median Time", self.runner.format_duration(run_stats.median))
-            timing_table.add_row("Mean Time", self.runner.format_duration(run_stats.mean))
-            timing_table.add_row("Min Time", self.runner.format_duration(run_stats.min_time))
-            timing_table.add_row("Max Time", self.runner.format_duration(run_stats.max_time))
-            timing_table.add_row("Total Runs", f"{run_stats.total_runs:,}")
-            
-            self.console.print(timing_table)
+        self.console.print(results_table)
         
         # Show failure analysis if there were failures
         if stats.failed_runs > 0:
