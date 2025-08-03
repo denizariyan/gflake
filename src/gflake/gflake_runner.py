@@ -21,7 +21,7 @@ from .utils import format_duration
 def _run_single_test_worker(args):
     """Worker function for multiprocessing test execution."""
 
-    def _signal_handler(signum, frame):
+    def _signal_handler(_signum, _frame):
         sys.exit(1)
 
     signal.signal(signal.SIGINT, _signal_handler)
@@ -110,10 +110,9 @@ class GflakeRunner:
 
         start_time = time.time()
         target_end_time = start_time + (duration_minutes * 60)
-
         duration_seconds = duration_minutes * 60
         completed_attempts = 0
-        # TODO: this function is too long/complex in one place. Some parts of it should be extracted.
+
         try:
             initial_dashboard = self._create_dashboard(
                 stats,
@@ -131,80 +130,161 @@ class GflakeRunner:
                 with ProcessPoolExecutor(max_workers=self.num_processes) as executor:
                     futures: list[Future[GTestRunResult]] = []
 
-                    for _ in range(self.num_processes):
-                        if time.time() < target_end_time:
-                            future = executor.submit(
-                                _run_single_test_worker,
-                                (self.binary_path, test_case, 30),
-                            )
-                            futures.append(future)
+                    self._initialize_futures(executor, futures, test_case, target_end_time)
 
-                    while futures and time.time() < target_end_time:
-                        for future in as_completed(futures, timeout=30):
-                            try:
-                                result = future.result()
-                                completed_attempts += 1
-
-                                stats.per_run_stats.append(
-                                    result.duration,
-                                )
-                                if result.success:
-                                    stats.successful_runs += 1
-                                else:
-                                    stats.failed_runs += 1
-                                    stats.failure_details.append(result)
-
-                                with self._dashboard_lock:
-                                    live.update(
-                                        self._create_dashboard(
-                                            stats,
-                                            completed_attempts,
-                                            duration_seconds,
-                                            start_time,
-                                        ),
-                                    )
-
-                                futures.remove(future)
-
-                                # Submit new work if we haven't reached our limits
-                                if time.time() < target_end_time and len(futures) < self.num_processes:
-                                    new_future = executor.submit(
-                                        _run_single_test_worker,
-                                        (self.binary_path, test_case, 30),
-                                    )
-                                    futures.append(new_future)
-
-                                break  # Exit early if conditions are met by processing one at a time
-
-                            except Exception as e:
-                                # Handle individual test execution errors
-                                completed_attempts += 1
-                                stats.failed_runs += 1
-
-                                # Create error result
-                                error_result = GTestRunResult(
-                                    success=False,
-                                    duration=0.0,
-                                    stdout="",
-                                    stderr=f"Process execution error: {e}",
-                                    return_code=42,
-                                )
-                                stats.failure_details.append(error_result)
-
-                                futures.remove(future)
-                                break
+                    completed_attempts = self._execute_test_loop(
+                        executor,
+                        futures,
+                        stats,
+                        test_case,
+                        target_end_time,
+                        duration_seconds,
+                        start_time,
+                        live,
+                        completed_attempts,
+                    )
 
         finally:
-            # Cancel any remaining futures when time is up or an error occurs
-            try:
-                for future in futures:
-                    future.cancel()
-            except Exception:
-                # TODO: maybe log in verbose mode?
-                pass
+            self._cleanup_futures(futures)
             self._show_final_results(stats)
 
         return stats
+
+    def _initialize_futures(
+        self,
+        executor: ProcessPoolExecutor,
+        futures: list[Future[GTestRunResult]],
+        test_case: GTestCase,
+        target_end_time: float,
+    ) -> None:
+        """Initialize the initial batch of futures for test execution."""
+        for _ in range(self.num_processes):
+            if time.time() < target_end_time:
+                future = executor.submit(
+                    _run_single_test_worker,
+                    (self.binary_path, test_case, 30),
+                )
+                futures.append(future)
+
+    def _execute_test_loop(
+        self,
+        executor: ProcessPoolExecutor,
+        futures: list[Future[GTestRunResult]],
+        stats: GflakeRunStats,
+        test_case: GTestCase,
+        target_end_time: float,
+        duration_seconds: float,
+        start_time: float,
+        live: Live,
+        completed_attempts: int,
+    ) -> int:
+        """Execute the main test loop, processing results and managing futures."""
+
+        while futures and time.time() < target_end_time:
+            for future in as_completed(futures, timeout=30):
+                completed_attempts = self._process_test_result(
+                    future,
+                    futures,
+                    stats,
+                    completed_attempts,
+                    duration_seconds,
+                    start_time,
+                    live,
+                )
+
+                self._submit_new_future_if_needed(
+                    executor,
+                    futures,
+                    test_case,
+                    target_end_time,
+                )
+
+                break  # Exit early if conditions are met by processing one at a time
+
+        return completed_attempts
+
+    def _process_test_result(
+        self,
+        future: Future[GTestRunResult],
+        futures: list[Future[GTestRunResult]],
+        stats: GflakeRunStats,
+        completed_attempts: int,
+        duration_seconds: float,
+        start_time: float,
+        live: Live,
+    ) -> int:
+        """Process a single test result and update statistics."""
+        try:
+            result = future.result()
+            completed_attempts += 1
+
+            stats.per_run_stats.append(result.duration)
+            if result.success:
+                stats.successful_runs += 1
+            else:
+                stats.failed_runs += 1
+                stats.failure_details.append(result)
+
+            self._update_dashboard(stats, completed_attempts, duration_seconds, start_time, live)
+            futures.remove(future)
+
+        except Exception as e:
+            completed_attempts += 1
+            stats.failed_runs += 1
+
+            error_result = GTestRunResult(
+                success=False,
+                duration=0.0,
+                stdout="",
+                stderr=f"Process execution error: {e}",
+                return_code=42,
+            )
+            stats.failure_details.append(error_result)
+            futures.remove(future)
+
+        return completed_attempts
+
+    def _update_dashboard(
+        self,
+        stats: GflakeRunStats,
+        completed_attempts: int,
+        duration_seconds: float,
+        start_time: float,
+        live: Live,
+    ) -> None:
+        """Update the live dashboard with current statistics."""
+        with self._dashboard_lock:
+            live.update(
+                self._create_dashboard(
+                    stats,
+                    completed_attempts,
+                    duration_seconds,
+                    start_time,
+                ),
+            )
+
+    def _submit_new_future_if_needed(
+        self,
+        executor: ProcessPoolExecutor,
+        futures: list[Future[GTestRunResult]],
+        test_case: GTestCase,
+        target_end_time: float,
+    ) -> None:
+        """Submit a new future if we haven't reached time/process limits."""
+        if time.time() < target_end_time and len(futures) < self.num_processes:
+            new_future = executor.submit(
+                _run_single_test_worker,
+                (self.binary_path, test_case, 30),
+            )
+            futures.append(new_future)
+
+    def _cleanup_futures(self, futures: list[Future[GTestRunResult]]) -> None:
+        """Cancel any remaining futures when time is up or an error occurs."""
+        try:
+            for future in futures:
+                future.cancel()
+        except Exception:
+            pass
 
     def _get_loading_animation(self, elapsed_time: float) -> str:
         """A crude way to create a loading animation."""
