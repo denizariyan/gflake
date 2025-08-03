@@ -75,7 +75,7 @@ class GflakeRunner:
             GflakeRunStats with complete session statistics
 
         """
-        self.console.print("🎯 [bold blue]Starting gflake Session[/bold blue]")
+        self.console.print("[bold blue]Starting gflake Session[/bold blue]")
         self.console.print(f"   Test: [cyan]{test_case.full_name}[/cyan]")
         self.console.print(
             f"   Duration: [yellow]{format_duration(duration_minutes * 60)}[/yellow]",
