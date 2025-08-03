@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Main CLI entry point for the gflake tool."""
 
+from os import cpu_count
 from pathlib import Path
 from typing import Optional
 
@@ -38,8 +39,8 @@ def run(
         "-d",
         help="Duration to run tests in seconds",
     ),
-    processes: Optional[int] = typer.Option(
-        None,
+    processes: int = typer.Option(
+        cpu_count() // 2,
         "--processes",
         "-p",
         help="Number of parallel processes (default: half of CPU cores)",
@@ -69,8 +70,7 @@ def run(
         console.print("[bold blue]gFlake Tool[/bold blue]")
         console.print(f"   Binary: [cyan]{binary_path}[/cyan]")
         console.print(f"   Target Duration: [yellow]{duration} seconds[/yellow]")
-        if processes:
-            console.print(f"   Processes: [green]{processes}[/green]")
+        console.print(f"   Processes: [green]{processes}[/green]")
         console.print()
 
         # Discover tests

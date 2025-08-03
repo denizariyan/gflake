@@ -22,13 +22,6 @@ class TestGflakeRunner:
             suite_name="Suite",
         )
 
-    @patch("os.cpu_count", return_value=8)
-    @patch("pathlib.Path.exists", return_value=True)
-    def test_init_default_processes(self, _mock_exists, _mock_cpu_count):
-        """Test initialization with default process count."""
-        runner = GflakeRunner(self.binary_path)
-        assert runner.num_processes == 4  # Half of CPU count
-
     @patch("pathlib.Path.exists", return_value=True)
     def test_init_custom_processes(self, _mock_exists):
         """Test initialization with custom process count."""

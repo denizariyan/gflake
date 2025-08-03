@@ -78,7 +78,7 @@ gflake run <binary> [OPTIONS]
 Options:
   -t, --test-name TEXT     Full test name (e.g., 'SuiteName.TestCase') to run directly without menu
   -d, --duration FLOAT     Duration to run tests in seconds [default: 5.0]
-  -p, --processes INT      Number of parallel processes [default: auto]
+  -p, --processes INT      Number of parallel processes [default: half of CPU cores]
   -v, --verbose            Enable verbose output
   --help                   Show help message
 ```

@@ -1,10 +1,9 @@
 import datetime
-import os
 import statistics
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List
 
 from rich.console import Console
 from rich.live import Live
@@ -52,17 +51,12 @@ class GflakeRunStats:
 class GflakeRunner:
     """Main gflake runner with progress tracking and statistics."""
 
-    def __init__(self, binary_path: str, num_processes: Optional[int] = None):
+    def __init__(self, binary_path: str, num_processes: int):
         self.binary_path = binary_path
         self.runner = GTestRunner(binary_path)
         self.console = Console()
 
-        # Set number of processes (default to half of available cores, min 1)
-        if num_processes is None:
-            cpu_count = os.cpu_count() or 1
-            self.num_processes = max(1, cpu_count // 2)
-        else:
-            self.num_processes = max(1, num_processes)
+        self.num_processes = max(1, num_processes)
 
     def run_gflake_session(
         self,
