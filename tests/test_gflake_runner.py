@@ -239,3 +239,26 @@ class TestGflakeRunner:
             print_calls = [str(call) for call in mock_print.call_args_list]
             failure_content = any("Failure #1" in call for call in print_calls)
             assert failure_content
+
+    @patch("gflake.gflake_runner.Live")
+    @patch("gflake.gflake_runner.ProcessPoolExecutor")
+    def test_keyboard_interrupt_shows_results(self, mock_executor, mock_live):
+        """Test that KeyboardInterrupt still shows final results and writes logs."""
+        # Mock the live dashboard context manager
+        mock_live_instance = MagicMock()
+        mock_live.return_value.__enter__.return_value = mock_live_instance
+
+        # Mock the executor to raise KeyboardInterrupt during execution
+        mock_executor_instance = MagicMock()
+        mock_executor.return_value.__enter__.return_value = mock_executor_instance
+        mock_executor_instance.submit.side_effect = KeyboardInterrupt()
+
+        # Mock the show_final_results method to track if it's called
+        with patch.object(self.runner, "_show_final_results") as mock_show_results:
+            try:
+                self.runner._run_gflake_attempts(self.test_case, 0.01)  # 0.6 seconds
+                assert False, "Expected KeyboardInterrupt to be raised"
+            except KeyboardInterrupt:
+                pass  # Expected behavior
+
+            mock_show_results.assert_called_once()

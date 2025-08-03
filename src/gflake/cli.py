@@ -101,18 +101,22 @@ def run(
                 raise typer.Exit(0)
 
         console.print()
-        stats = gflake_runner.run_gflake_session(
-            test_case=selected_test,
-            duration_minutes=duration / 60.0,  # Convert seconds to minutes
-        )
+        try:
+            stats = gflake_runner.run_gflake_session(
+                test_case=selected_test,
+                duration_minutes=duration / 60.0,  # Convert seconds to minutes
+            )
 
-        # Exit with appropriate code based on flaky behavior detection
-        if stats.failed_runs > 0:
-            console.print("\n[bold red]Flaky behavior detected![/bold red]")
+            if stats.failed_runs > 0:
+                console.print("\n[bold red]Flaky behavior detected![/bold red]")
+                raise typer.Exit(1)
+            else:
+                console.print("\n[bold green]No flaky behavior detected.[/bold green]")
+                raise typer.Exit(0)
+
+        except KeyboardInterrupt:
+            console.print("\n👋 [yellow]Session ended by user interruption.[/yellow]")
             raise typer.Exit(1)
-        else:
-            console.print("\n[bold green]No flaky behavior detected.[/bold green]")
-            raise typer.Exit(0)
 
     except KeyboardInterrupt:
         console.print("\n👋 [yellow]Interrupted by user. Goodbye![/yellow]")
