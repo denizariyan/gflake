@@ -1,7 +1,7 @@
 [project]
 name = "gflake"
-version = "0.1.1"
-description = ""
+version = "0.1.3"
+description = "A CLI tool to automatically discover and repeatedly run Google Test (gtest) test cases to identify flaky tests."
 authors = [
     {name = "Deniz Ariyan",email = "contact@denizariyan.com"}
 ]
@@ -23,6 +23,7 @@ dev = [
 [project.urls]
 Homepage = "https://github.com/denizariyan/gflake"
 Issues = "https://github.com/denizariyan/gflake/issues"
+Repository = "https://github.com/denizariyan/gflake.git"
 
 [project.scripts]
 gflake = "gflake.cli:main"
