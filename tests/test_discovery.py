@@ -1,8 +1,10 @@
 """Tests for test discovery functionality."""
 
+from subprocess import CalledProcessError
 from unittest.mock import patch
 
 import pytest
+
 from gflake.test_discovery import GTestCase, GTestDiscovery
 
 
@@ -107,7 +109,6 @@ TypedTest/1.  # TypeParam = float
     @patch("subprocess.run")
     def test_discover_command_failure(self, mock_run):
         """Test handling of failed test discovery command."""
-        from subprocess import CalledProcessError
 
         mock_run.side_effect = CalledProcessError(
             1,

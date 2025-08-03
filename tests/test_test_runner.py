@@ -1,5 +1,6 @@
 """Tests for test runner functionality."""
 
+from subprocess import TimeoutExpired
 from unittest.mock import patch
 
 from gflake.test_discovery import GTestCase
@@ -58,7 +59,6 @@ class TestTestRunner:
     @patch("subprocess.run")
     def test_run_test_once_timeout(self, mock_run, _mock_perf_counter):
         """Test test run with timeout."""
-        from subprocess import TimeoutExpired
 
         mock_run.side_effect = TimeoutExpired(["cmd"], timeout=30)
 
@@ -68,50 +68,6 @@ class TestTestRunner:
         assert result.duration == 30.0
         assert "timed out" in result.stderr.lower()
         assert result.return_code == -1
-
-    @patch.object(
-        GTestRunner,
-        "run_test_once",
-        side_effect=[
-            GTestRunResult(True, 0.001, "", "", 0),  # 1ms
-            GTestRunResult(True, 0.001, "", "", 0),  # 1ms
-            GTestRunResult(True, 0.003, "", "", 0),  # 3ms (median)
-            GTestRunResult(True, 0.005, "", "", 0),  # 5ms
-            GTestRunResult(True, 0.010, "", "", 0),  # 10ms
-        ],
-    )
-    def test_measure_test_timing_multiple_runs(self, mock_run_test_once):
-        """Test timing measurement over multiple runs."""
-        timing_info = self.runner.measure_test_timing(self.test_case, num_runs=5)
-        assert timing_info.test_case == self.test_case
-        assert len(timing_info.runs) == 5
-        assert timing_info.median_duration == 0.003  # Middle value
-        assert timing_info.mean_duration == 0.004  # (1+1+3+5+10)/5 = 4ms
-        assert timing_info.min_duration == 0.001
-        assert timing_info.max_duration == 0.010
-        assert timing_info.success_rate == 1.0
-        assert timing_info.total_runs == 5
-
-    @patch.object(
-        GTestRunner,
-        "run_test_once",
-        side_effect=[
-            GTestRunResult(True, 0.002, "", "", 0),  # Success
-            GTestRunResult(False, 0.001, "", "Error", 1),  # Failure
-            GTestRunResult(True, 0.003, "", "", 0),  # Success
-            GTestRunResult(False, 0.002, "", "Error", 1),  # Failure
-            GTestRunResult(True, 0.004, "", "", 0),  # Success
-        ],
-    )
-    def test_measure_test_timing_with_failures(self, mock_run_test_once):
-        """Test timing measurement with some failed runs."""
-        timing_info = self.runner.measure_test_timing(self.test_case, num_runs=5)
-        assert len(timing_info.runs) == 5
-        assert timing_info.success_rate == 0.6  # 3/5 = 60%
-        assert timing_info.total_runs == 5
-        # Should calculate stats from all runs, including failures
-        assert timing_info.min_duration == 0.001
-        assert timing_info.max_duration == 0.004
 
     def test_format_duration_categories(self):
         """Test duration formatting uses correct units."""

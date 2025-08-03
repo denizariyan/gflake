@@ -1,5 +1,3 @@
-"""Main gflake runner with progress bars and attempt estimation."""
-
 import datetime
 import os
 import statistics
@@ -11,34 +9,15 @@ from typing import List, Optional
 from rich.console import Console
 from rich.live import Live
 from rich.panel import Panel
-from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
-    Progress,
-    SpinnerColumn,
-    TextColumn,
-    TimeElapsedColumn,
-)
 from rich.table import Table
 
 from .test_discovery import GTestCase
-from .test_runner import GTestRunner, GTestRunResult, GTestTimingInfo
+from .test_runner import GTestRunner, GTestRunResult
 
 
 def _run_single_test_worker(args):
     """Worker function for multiprocessing test execution."""
-    binary_path, test_case_dict, timeout = args
-
-    # Reconstruct TestCase from dict (needed for multiprocessing)
-    test_case = GTestCase(
-        name=test_case_dict["name"],
-        full_name=test_case_dict["full_name"],
-        suite_name=test_case_dict["suite_name"],
-        is_parameterized=test_case_dict["is_parameterized"],
-        is_typed=test_case_dict["is_typed"],
-        type_info=test_case_dict["type_info"],
-        parameter_value=test_case_dict["parameter_value"],
-    )
+    binary_path, test_case, timeout = args
 
     # Create runner and execute test
     runner = GTestRunner(binary_path)
@@ -53,7 +32,6 @@ class ActualRunTimeStats:
     mean: float
     min_time: float
     max_time: float
-    total_runs: int
 
 
 @dataclass
@@ -61,7 +39,6 @@ class GflakeRunStats:
     """Statistics for a gflake run session."""
 
     test_case: GTestCase
-    target_duration_minutes: float
     num_processes: int = 1
     actual_attempts: int = 0
     successful_runs: int = 0
@@ -87,18 +64,6 @@ class GflakeRunner:
             self.num_processes = max(1, cpu_count // 2)
         else:
             self.num_processes = max(1, num_processes)
-
-    def _test_case_to_dict(self, test_case: GTestCase) -> dict:
-        """Convert TestCase to dict for multiprocessing."""
-        return {
-            "name": test_case.name,
-            "full_name": test_case.full_name,
-            "suite_name": test_case.suite_name,
-            "is_parameterized": test_case.is_parameterized,
-            "is_typed": test_case.is_typed,
-            "type_info": test_case.type_info,
-            "parameter_value": test_case.parameter_value,
-        }
 
     def run_gflake_session(
         self,
@@ -129,88 +94,6 @@ class GflakeRunner:
 
         return stats
 
-    def _measure_initial_timing(
-        self,
-        test_case: GTestCase,
-        num_runs: int,
-    ) -> GTestTimingInfo:
-        """Measure initial timing with progress bar."""
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            MofNCompleteColumn(),
-            TimeElapsedColumn(),
-            console=self.console,
-        ) as progress:
-            task = progress.add_task(
-                f"📊 Measuring timing for {test_case.name}...",
-                total=num_runs,
-            )
-
-            # Run tests individually and update progress after each one
-            runs = []
-            for i in range(num_runs):
-                result = self.runner.run_test_once(test_case, timeout=30)
-                runs.append(result)
-                progress.update(task, completed=i + 1)
-
-            # Calculate statistics manually (similar to TestRunner.measure_test_timing)
-            durations = [run.duration for run in runs]
-            successful_runs = [run for run in runs if run.success]
-
-            # Use all durations for timing stats (even failed runs have timing)
-            median_duration = statistics.median(durations)
-            mean_duration = statistics.mean(durations)
-            min_duration = min(durations)
-            max_duration = max(durations)
-
-            # Calculate success rate
-            success_rate = len(successful_runs) / len(runs) if runs else 0.0
-
-            timing_info = GTestTimingInfo(
-                test_case=test_case,
-                runs=runs,
-                median_duration=median_duration,
-                mean_duration=mean_duration,
-                min_duration=min_duration,
-                max_duration=max_duration,
-                success_rate=success_rate,
-                total_runs=len(runs),
-            )
-
-        return timing_info
-
-    def _show_estimation_summary(
-        self,
-        timing_info: GTestTimingInfo,
-        duration_minutes: float,
-        estimated_attempts: int,
-    ):
-        """Show timing analysis and attempt estimation."""
-        # Create summary table
-        table = Table(title="📈 Timing Analysis")
-        table.add_column("Metric", style="cyan")
-        table.add_column("Value", style="yellow")
-
-        table.add_row(
-            "Median Time",
-            self.runner.format_duration(timing_info.median_duration),
-        )
-        table.add_row(
-            "Mean Time",
-            self.runner.format_duration(timing_info.mean_duration),
-        )
-        table.add_row("Success Rate", f"{timing_info.success_rate:.1%}")
-        table.add_row("Estimated Attempts", f"{estimated_attempts:,}")
-        table.add_row(
-            "Target Duration",
-            self.runner.format_duration(duration_minutes * 60.0),
-        )
-
-        self.console.print(table)
-        self.console.print()
-
     def _run_gflake_attempts(
         self,
         test_case: GTestCase,
@@ -219,15 +102,11 @@ class GflakeRunner:
         """Run the main gflake attempts with multiprocessing and live progress tracking."""
         stats = GflakeRunStats(
             test_case=test_case,
-            target_duration_minutes=duration_minutes,
             num_processes=self.num_processes,
         )
 
         start_time = time.time()
         target_end_time = start_time + (duration_minutes * 60)
-
-        # Prepare test case for multiprocessing
-        test_case_dict = self._test_case_to_dict(test_case)
 
         duration_seconds = duration_minutes * 60
         completed_attempts = 0
@@ -252,7 +131,7 @@ class GflakeRunner:
                     if time.time() < target_end_time:
                         future = executor.submit(
                             _run_single_test_worker,
-                            (self.binary_path, test_case_dict, 30),
+                            (self.binary_path, test_case, 30),
                         )
                         futures.append(future)
 
@@ -290,7 +169,7 @@ class GflakeRunner:
                             if time.time() < target_end_time and len(futures) < self.num_processes:
                                 new_future = executor.submit(
                                     _run_single_test_worker,
-                                    (self.binary_path, test_case_dict, 30),
+                                    (self.binary_path, test_case, 30),
                                 )
                                 futures.append(new_future)
 
@@ -367,26 +246,23 @@ class GflakeRunner:
         table.add_row("Success Rate", f"{success_rate:.2f}%")
         table.add_row("Throughput", f"{throughput:.1f} tests/sec")
 
-        # Live timing statistics
-        if stats.per_run_stats:
-            run_stats = self._calculate_actual_run_stats(stats.per_run_stats)
-            table.add_row("", "")  # Separator
-            table.add_row("Median Time", self.runner.format_duration(run_stats.median))
-            table.add_row("Mean Time", self.runner.format_duration(run_stats.mean))
-            table.add_row("Min Time", self.runner.format_duration(run_stats.min_time))
-            table.add_row("Max Time", self.runner.format_duration(run_stats.max_time))
+        run_stats = self._calculate_run_time_stats(stats.per_run_stats)
+        table.add_row("", "")  # Separator
+        table.add_row("Median Time", self.runner.format_duration(run_stats.median))
+        table.add_row("Mean Time", self.runner.format_duration(run_stats.mean))
+        table.add_row("Min Time", self.runner.format_duration(run_stats.min_time))
+        table.add_row("Max Time", self.runner.format_duration(run_stats.max_time))
 
         return Panel(table, border_style="green", padding=(0, 1))
 
-    def _calculate_actual_run_stats(self, run_times: List[float]) -> ActualRunTimeStats:
-        """Calculate statistics for actual run times."""
+    def _calculate_run_time_stats(self, run_times: List[float]) -> ActualRunTimeStats:
+        """Calculate statistics for run times."""
         if not run_times:
             return ActualRunTimeStats(
                 median=0.0,
                 mean=0.0,
                 min_time=0.0,
                 max_time=0.0,
-                total_runs=0,
             )
 
         return ActualRunTimeStats(
@@ -394,16 +270,15 @@ class GflakeRunner:
             mean=statistics.mean(run_times),
             min_time=min(run_times),
             max_time=max(run_times),
-            total_runs=len(run_times),
         )
 
     def _show_final_results(self, stats: GflakeRunStats):
-        """Display comprehensive final results."""
+        """Display final results."""
         self.console.print("\n" + "=" * 60)
         self.console.print("🏁 [bold green]gFlake Session Complete[/bold green]")
         self.console.print("=" * 60)
 
-        results_table = Table(title="📋 Session Results")
+        results_table = Table(title="Session Results")
         results_table.add_column("Metric", style="cyan")
         results_table.add_column("Value", style="yellow")
 
@@ -427,7 +302,7 @@ class GflakeRunner:
 
         # Add timing statistics if available
         if stats.per_run_stats:
-            run_stats = self._calculate_actual_run_stats(stats.per_run_stats)
+            run_stats = self._calculate_run_time_stats(stats.per_run_stats)
             results_table.add_row("", "")  # Empty row for separation
             results_table.add_row(
                 "Median Time",
@@ -455,9 +330,9 @@ class GflakeRunner:
             )
 
             if stats.failure_details:
-                self.console.print("\n🔍 [bold]Failure Analysis:[/bold]")
+                self.console.print("\n[bold]Failure Analysis:[/bold]")
 
-                # Group failures by error type
+                # Group failures by return code
                 error_types = {}
                 for failure in stats.failure_details:
                     error_key = f"RC:{failure.return_code}"
@@ -497,7 +372,7 @@ class GflakeRunner:
         self._write_failures_to_file(failure_details)
 
         self.console.print(
-            f"\n📝 [bold]Detailed Failure Logs[/bold] (showing first {min(max_logs, len(failure_details))} failures):",
+            f"\n[bold]Failure Logs[/bold] (showing first {min(max_logs, len(failure_details))} failures):",
         )
 
         for i, failure in enumerate(failure_details[:max_logs]):
@@ -531,7 +406,6 @@ class GflakeRunner:
                     truncated_stderr = failure.stderr
                 failure_content.append(f"[red]{truncated_stderr}[/red]")
 
-            # Show the failure in a panel
             panel = Panel(
                 "\n".join(failure_content),
                 title=f"Failure #{i + 1}",
@@ -556,14 +430,14 @@ class GflakeRunner:
 
         try:
             with open("failed_tests.log", "a", encoding="utf-8") as f:
-                # Write session header
+                # Session header
                 timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 f.write(f"\n{'=' * 80}\n")
                 f.write(f"gFlake Session: {timestamp}\n")
                 f.write(f"Total Failed Runs: {len(failure_details)}\n")
                 f.write(f"{'=' * 80}\n\n")
 
-                # Write each failure
+                # Each failure
                 for i, failure in enumerate(failure_details):
                     f.write(f"FAILURE #{i + 1}\n")
                     f.write(f"{'—' * 40}\n")
@@ -589,16 +463,4 @@ class GflakeRunner:
         except Exception as e:
             self.console.print(
                 f"\n⚠️  [yellow]Warning: Could not write to failed_tests.log: {e}[/yellow]",
-            )
-
-    def get_session_summary(self, stats: GflakeRunStats) -> str:
-        """Get a brief text summary of the session."""
-        success_rate = (stats.successful_runs / stats.actual_attempts * 100) if stats.actual_attempts > 0 else 0
-
-        if stats.failed_runs == 0:
-            return f"✅ {stats.test_case.name}: {stats.actual_attempts:,} runs, 100% success"
-        else:
-            return (
-                f"⚠️ {stats.test_case.name}: {stats.actual_attempts:,} runs, "
-                f"{success_rate:.1f}% success ({stats.failed_runs} failures)"
             )

@@ -2,10 +2,11 @@
 
 from unittest.mock import Mock, patch
 
+from typer.testing import CliRunner
+
 from gflake.cli import _display_discovered_tests, app
 from gflake.gflake_runner import GflakeRunStats
 from gflake.test_discovery import GTestCase, GTestSuite
-from typer.testing import CliRunner
 
 
 class TestCLI:
@@ -120,7 +121,6 @@ class TestCLI:
         mock_runner_instance = Mock()
         mock_stats = GflakeRunStats(
             test_case=self.test_case,
-            target_duration_minutes=1.0,
             num_processes=2,
             failed_runs=0,  # No failures
         )
@@ -160,7 +160,6 @@ class TestCLI:
         mock_runner_instance = Mock()
         mock_stats = GflakeRunStats(
             test_case=self.test_case,
-            target_duration_minutes=1.0,
             num_processes=2,
             failed_runs=5,  # Some failures
         )
@@ -222,7 +221,6 @@ class TestCLI:
         mock_runner_instance = Mock()
         mock_stats = GflakeRunStats(
             test_case=self.test_case,
-            target_duration_minutes=2.0,  # 120 seconds = 2 minutes
             num_processes=4,
             failed_runs=0,
         )
@@ -314,7 +312,6 @@ class TestCLI:
         mock_runner_instance = Mock()
         mock_stats = GflakeRunStats(
             test_case=self.test_case,
-            target_duration_minutes=2.0,  # Expected after conversion
             num_processes=2,
             failed_runs=0,
         )
@@ -332,3 +329,38 @@ class TestCLI:
         mock_runner_instance.run_gflake_session.assert_called_once()
         call_args = mock_runner_instance.run_gflake_session.call_args
         assert call_args[1]["duration_minutes"] == 2.0  # 120/60 = 2.0
+
+    def test_process_binary_path_not_a_file(self):
+        """Test error handling for non-file paths via CLI."""
+        result = self.runner.invoke(app, ["run", "/path/to/directory"])
+        assert result.exit_code == 1
+
+    @patch("gflake.cli.GTestDiscovery")
+    @patch("pathlib.Path.exists", return_value=True)
+    @patch("pathlib.Path.is_file", return_value=True)
+    def test_run_command_no_test_suites_found(self, _mock_is_file, _mock_exists, mock_discovery):
+        """Test run command when no test suites are found in the binary."""
+        # Setup discovery mock to return empty suites
+        mock_discovery_instance = Mock()
+        mock_discovery_instance.discover_tests.return_value = {}
+        mock_discovery.return_value = mock_discovery_instance
+
+        result = self.runner.invoke(app, ["run", "/path/to/binary"])
+
+        assert result.exit_code == 1
+        assert "No test suites found" in result.stdout
+
+    @patch("gflake.cli.GTestDiscovery")
+    @patch("pathlib.Path.exists", return_value=True)
+    @patch("pathlib.Path.is_file", return_value=True)
+    def test_run_command_keyboard_interrupt(self, _mock_is_file, _mock_exists, mock_discovery):
+        """Test run command handling of keyboard interrupt with exit code 1."""
+        # Setup discovery mock to raise KeyboardInterrupt
+        mock_discovery_instance = Mock()
+        mock_discovery_instance.discover_tests.side_effect = KeyboardInterrupt()
+        mock_discovery.return_value = mock_discovery_instance
+
+        result = self.runner.invoke(app, ["run", "/path/to/binary"])
+
+        assert result.exit_code == 1
+        assert "Interrupted by user" in result.stdout

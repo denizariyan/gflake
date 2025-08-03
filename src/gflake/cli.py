@@ -6,6 +6,7 @@ from typing import Optional
 
 import typer
 from rich.console import Console
+from rich.tree import Tree
 
 from .gflake_runner import GflakeRunner
 from .menu_system import TestMenuSystem
@@ -13,7 +14,7 @@ from .test_discovery import GTestDiscovery
 
 app = typer.Typer(
     name="gFlake",
-    help="🎯 A CLI tool for deflaking gtest test cases with interactive menus and progress tracking.",
+    help="A CLI tool for deflaking gtest test cases with interactive menus and progress tracking.",
     add_completion=False,
 )
 console = Console()
@@ -44,7 +45,7 @@ def run(
         help="Enable verbose output",
     ),
 ):
-    """🚀 Run the gFlake tool interactively.
+    """Run the gFlake tool interactively.
 
     This will discover tests from the binary, show interactive menus for test selection,
     and run gFlake sessions with progress bars and detailed statistics.
@@ -64,7 +65,7 @@ def run(
             )
             raise typer.Exit(1)
 
-        console.print("🎯 [bold blue]gFlake Tool[/bold blue]")
+        console.print("[bold blue]gFlake Tool[/bold blue]")
         console.print(f"   Binary: [cyan]{binary_path}[/cyan]")
         console.print(f"   Target Duration: [yellow]{duration} seconds[/yellow]")
         if processes:
@@ -72,7 +73,7 @@ def run(
         console.print()
 
         # Discover tests
-        console.print("🔍 [bold]Discovering tests...[/bold]")
+        console.print("[bold]Discovering tests...[/bold]")
         discovery = GTestDiscovery(str(binary_path))
         suites = discovery.discover_tests()
 
@@ -106,9 +107,9 @@ def run(
 
     except KeyboardInterrupt:
         console.print("\n👋 [yellow]Interrupted by user. Goodbye![/yellow]")
-        raise typer.Exit(0)
+        raise typer.Exit(1)
     except typer.Exit:
-        # Re-raise typer.Exit exceptions without handling them
+        # Propagate exit exceptions
         raise
     except Exception as e:
         console.print(f"\n❌ [bold red]Unexpected error:[/bold red] {e}")
@@ -124,7 +125,7 @@ def discover(
         help="Path to the gtest binary to discover tests from",
     ),
 ):
-    """🔍 Discover and list all available tests from a gtest binary."""
+    """Discover and list all available tests from a gtest binary."""
     try:
         # Validate binary path
         binary_path = Path(binary_path).resolve()
@@ -134,7 +135,7 @@ def discover(
             )
             raise typer.Exit(1)
 
-        console.print("🔍 [bold blue]Test Discovery[/bold blue]")
+        console.print("[bold blue]Test Discovery[/bold blue]")
         console.print(f"   Binary: [cyan]{binary_path}[/cyan]")
         console.print()
 
@@ -151,7 +152,7 @@ def discover(
 
         # Show summary
         total_tests = sum(len(suite.cases) for suite in suites.values())
-        console.print("\n📊 [bold]Discovery Summary:[/bold]")
+        console.print("\n[bold]Discovery Summary:[/bold]")
         console.print(f"   Test Suites: [cyan]{len(suites)}[/cyan]")
         console.print(f"   Total Tests: [green]{total_tests}[/green]")
 
@@ -162,10 +163,9 @@ def discover(
 
 def _display_discovered_tests(suites):
     """Display the discovered test suites and cases in a tree format."""
-    from rich.tree import Tree
 
     # Create the main tree
-    tree = Tree("🧪 [bold blue]Discovered Tests[/bold blue]")
+    tree = Tree("[bold blue]Discovered Tests[/bold blue]")
 
     for suite_name, suite in suites.items():
         # Add suite as a branch

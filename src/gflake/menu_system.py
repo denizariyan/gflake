@@ -1,5 +1,5 @@
-"""Interactive menu system for selecting gtest test cases.
-"""
+"""Interactive menu system for selecting gtest test cases."""
+
 from typing import Optional, Union
 
 import questionary
@@ -123,17 +123,6 @@ class TestMenuSystem:
         suite: GTestSuite,
     ) -> Union[GTestCase, BackAction, None]:
         """Select a test case from within a suite."""
-        if len(suite.cases) == 1:
-            # Only one test case, confirm selection
-            case = suite.cases[0]
-            self._show_test_case_details(case)
-
-            confirm = questionary.confirm(
-                f"Run test: {case.full_name}?",
-                default=True,
-            ).ask()
-
-            return case if confirm else None
 
         # Multiple test cases - show selection menu
         choices = []
@@ -166,32 +155,6 @@ class TestMenuSystem:
 
         return selection
 
-    def _show_test_overview(self):
-        """Display an overview of all discovered tests."""
-        total_tests = sum(len(suite.cases) for suite in self.suites.values())
-
-        # Create tree view
-        tree = Tree("📋 [bold blue]Discovered Test Suites[/bold blue]")
-
-        for suite_name, suite in self.suites.items():
-            suite_info = f"[yellow]{suite_name}[/yellow] ({len(suite.cases)} tests)"
-            if suite.is_typed:
-                suite_info += " [dim][typed][/dim]"
-            if suite.is_parameterized:
-                suite_info += " [dim][parameterized][/dim]"
-
-            tree.add(suite_info)
-
-        # Show in a panel
-        panel = Panel(
-            tree,
-            title=f"Test Discovery Summary - {total_tests} total tests",
-            border_style="blue",
-        )
-
-        self.console.print(panel)
-        self.console.print()
-
     def _show_suite_details(self, suite: GTestSuite):
         """Show detailed information about a test suite."""
         tree = Tree(f"📁 [bold yellow]{suite.name}[/bold yellow]")
@@ -209,43 +172,5 @@ class TestMenuSystem:
                 case_info += f" [dim]({', '.join(details)})[/dim]"
 
             tree.add(case_info)
-
-        self.console.print()
-
-    def _show_test_case_details(self, case: GTestCase):
-        """Show detailed information about a test case."""
-        details = []
-        details.append(f"[bold]Full Name:[/bold] {case.full_name}")
-        details.append(f"[bold]Suite:[/bold] {case.suite_name}")
-        details.append(f"[bold]Test Name:[/bold] {case.name}")
-
-        if case.is_typed and case.type_info:
-            details.append(f"[bold]Type:[/bold] {case.type_info}")
-
-        if case.is_parameterized and case.parameter_value:
-            details.append(f"[bold]Parameter:[/bold] {case.parameter_value}")
-
-        panel = Panel(
-            "\n".join(details),
-            title="🎯 Selected Test Case",
-            border_style="green",
-        )
-
-        self.console.print(panel)
-        self.console.print()
-
-    def show_selection_summary(self, test_case: GTestCase):
-        """Show a summary of the selected test case."""
-        self.console.print(
-            f"✅ Selected: [bold green]{test_case.full_name}[/bold green]",
-        )
-
-        if test_case.is_typed and test_case.type_info:
-            self.console.print(f"   Type: [cyan]{test_case.type_info}[/cyan]")
-
-        if test_case.is_parameterized and test_case.parameter_value:
-            self.console.print(
-                f"   Parameter: [cyan]{test_case.parameter_value}[/cyan]",
-            )
 
         self.console.print()

@@ -1,4 +1,4 @@
-.PHONY: help install lint format test test-python test-cpp clean build
+.PHONY: help install lint format test test-python test-cpp clean build coverage
 
 help:  ## Show this help message
 	@echo "Available targets:"
@@ -24,7 +24,7 @@ test:  ## Run all tests (Python and C++)
 	$(MAKE) test-cpp
 
 test-python:  ## Run Python tests
-	poetry run pytest tests/ -v
+	poetry run pytest -v
 
 test-cpp:  ## Build and run C++ tests (excluding flaky test)
 	cd cpp && mkdir -p build && cd build && cmake .. && make
@@ -49,7 +49,12 @@ check:  ## Run all checks (lint, format, test)
 	$(MAKE) lint
 	$(MAKE) format-check  
 	$(MAKE) test
+	$(MAKE) coverage
 
 fix:  ## Fix all auto-fixable issues
 	$(MAKE) lint-fix
 	$(MAKE) format
+
+coverage:  ## Run tests with coverage report
+	poetry run pytest --cov=src/gflake --cov-report=term-missing
+	poetry run vulture

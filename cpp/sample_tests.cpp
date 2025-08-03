@@ -94,3 +94,7 @@ TEST(SimpleTests, FalseIsFalse) {
     std::this_thread::sleep_for(std::chrono::milliseconds(25));
     EXPECT_FALSE(false);
 }
+
+TEST(SingleTest, TrueIsTrue) {
+    EXPECT_TRUE(true);
+}

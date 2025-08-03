@@ -207,21 +207,3 @@ class GTestDiscovery:
             is_parameterized=is_parameterized,
             is_typed=is_typed,
         )
-
-    def get_test_case_by_full_name(self, full_name: str) -> Optional[GTestCase]:
-        """Find a test case by its full name (Suite.TestCase)."""
-        suites = self.discover_tests()
-        for suite in suites.values():
-            for case in suite.cases:
-                if case.full_name == full_name:
-                    return case
-        return None
-
-    def list_all_test_names(self) -> List[str]:
-        """Get a flat list of all test case full names."""
-        suites = self.discover_tests()
-        all_tests = []
-        for suite in suites.values():
-            for case in suite.cases:
-                all_tests.append(case.full_name)
-        return sorted(all_tests)
