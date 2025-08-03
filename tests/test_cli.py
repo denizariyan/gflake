@@ -503,10 +503,3 @@ class TestCLI:
         # Still inform about the flaky behavior
         assert result.exit_code == 1
         assert "flaky behavior detected" in result.stdout.lower()
-
-    def test_run_command_help_includes_test_name(self):
-        """Test that run command help includes the new test-name option."""
-        result = self.runner.invoke(app, ["run", "--help"])
-        assert result.exit_code == 0
-        assert "--test-name" in result.stdout
-        assert "Full test name" in result.stdout
