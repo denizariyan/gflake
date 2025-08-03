@@ -113,6 +113,8 @@ class GflakeRunner:
         duration_seconds = duration_minutes * 60
         completed_attempts = 0
 
+        # Init before the try block to ensure it's defined even if an exception occurs before first use
+        futures: list[Future[GTestRunResult]] = []
         try:
             initial_dashboard = self._create_dashboard(
                 stats,
@@ -128,8 +130,6 @@ class GflakeRunner:
                 screen=False,
             ) as live:
                 with ProcessPoolExecutor(max_workers=self.num_processes) as executor:
-                    futures: list[Future[GTestRunResult]] = []
-
                     self._initialize_futures(executor, futures, test_case, target_end_time)
 
                     completed_attempts = self._execute_test_loop(
