@@ -55,6 +55,6 @@ fix:  ## Fix all auto-fixable issues
 	$(MAKE) lint-fix
 	$(MAKE) format
 
-coverage:  ## Run tests with coverage report
-	poetry run pytest --cov=src/gflake --cov-report=term-missing
+coverage:  ## Run tests with coverage report and enforce min coverage
+	poetry run pytest --cov=src/gflake --cov-report=term-missing --cov-fail-under=85
 	poetry run vulture
