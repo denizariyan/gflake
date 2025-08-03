@@ -94,7 +94,7 @@ class TestCLI:
         assert result.stdout
 
     @patch("gflake.cli.GTestDiscovery")
-    @patch("gflake.cli.TestMenuSystem")
+    @patch("gflake.cli.MenuSystem")
     @patch("gflake.cli.GflakeRunner")
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.is_file", return_value=True)
@@ -133,7 +133,7 @@ class TestCLI:
         assert "no flaky behavior detected" in result.stdout.lower()
 
     @patch("gflake.cli.GTestDiscovery")
-    @patch("gflake.cli.TestMenuSystem")
+    @patch("gflake.cli.MenuSystem")
     @patch("gflake.cli.GflakeRunner")
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.is_file", return_value=True)
@@ -172,7 +172,7 @@ class TestCLI:
         assert "flaky behavior detected" in result.stdout.lower()
 
     @patch("gflake.cli.GTestDiscovery")
-    @patch("gflake.cli.TestMenuSystem")
+    @patch("gflake.cli.MenuSystem")
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.is_file", return_value=True)
     def test_run_command_user_cancellation(
@@ -199,7 +199,7 @@ class TestCLI:
         assert result.stdout
 
     @patch("gflake.cli.GTestDiscovery")
-    @patch("gflake.cli.TestMenuSystem")
+    @patch("gflake.cli.MenuSystem")
     @patch("gflake.cli.GflakeRunner")
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.is_file", return_value=True)
@@ -290,7 +290,7 @@ class TestCLI:
         assert result.stdout
 
     @patch("gflake.cli.GTestDiscovery")
-    @patch("gflake.cli.TestMenuSystem")
+    @patch("gflake.cli.MenuSystem")
     @patch("gflake.cli.GflakeRunner")
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.is_file", return_value=True)

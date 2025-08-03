@@ -140,9 +140,7 @@ class TestGflakeRunner:
     def test_run_gflake_session_basic(self, mock_run_attempts):
         """Test basic run_gflake_session functionality."""
         # Mock _run_gflake_attempts to return test stats
-        expected_stats = GflakeRunStats(
-            test_case=self.test_case, num_processes=2, actual_attempts=5, successful_runs=5, failed_runs=0
-        )
+        expected_stats = GflakeRunStats(test_case=self.test_case, num_processes=2, successful_runs=5, failed_runs=0)
         mock_run_attempts.return_value = expected_stats
 
         with patch.object(self.runner.console, "print"):
@@ -157,7 +155,6 @@ class TestGflakeRunner:
         expected_stats = GflakeRunStats(
             test_case=self.test_case,
             num_processes=2,
-            actual_attempts=5,
             successful_runs=3,
             failed_runs=2,
             failure_details=[
@@ -211,7 +208,7 @@ class TestGflakeRunner:
         with patch.object(self.runner, "_write_failures_to_file") as mock_write, patch.object(
             self.runner.console, "print"
         ) as mock_print:
-            self.runner._show_failure_logs(failures, max_logs=1)
+            self.runner._show_failure_logs(failures)
 
             mock_write.assert_called_once_with(failures)
             assert mock_print.call_count > 0

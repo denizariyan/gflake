@@ -98,6 +98,7 @@ class GTestRunner:
                 return_code=-2,
             )
 
+    # TODO: move to a utility module
     def format_duration(self, seconds: float) -> str:
         """Format duration in a human-readable way."""
         if seconds < 1:

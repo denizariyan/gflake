@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-from gflake.menu_system import BackAction, ExitAction, MenuAction, TestMenuSystem
+from gflake.menu_system import BackAction, ExitAction, MenuSystem
 from gflake.test_discovery import GTestCase, GTestSuite
 
 
@@ -21,7 +21,7 @@ class TestMenuAction:
 
 
 class TestTestMenuSystem:
-    """Test the TestMenuSystem class."""
+    """Test the MenuSystem class."""
 
     def setup_method(self):
         """Set up test fixtures."""
@@ -37,18 +37,18 @@ class TestTestMenuSystem:
 
         # Create menu system with mocked discovery
         with patch("gflake.menu_system.GTestDiscovery"):
-            self.menu_system = TestMenuSystem(self.binary_path)
+            self.menu_system = MenuSystem(self.binary_path)
 
     def test_init_with_suites(self):
         """Test initialization with predefined suites."""
         with patch("gflake.menu_system.GTestDiscovery"):
-            menu_system = TestMenuSystem(self.binary_path, suites=self.suites_dict)
+            menu_system = MenuSystem(self.binary_path, suites=self.suites_dict)
             assert menu_system.suites == self.suites_dict
 
     def test_init_without_suites(self):
         """Test initialization without predefined suites."""
         with patch("gflake.menu_system.GTestDiscovery"):
-            menu_system = TestMenuSystem(self.binary_path)
+            menu_system = MenuSystem(self.binary_path)
             assert menu_system.suites is None
 
     @patch("gflake.menu_system.questionary.select")
@@ -100,8 +100,8 @@ class TestTestMenuSystem:
 
         assert result is None
 
-    @patch.object(TestMenuSystem, "_select_suite")
-    @patch.object(TestMenuSystem, "_select_test_case_from_suite")
+    @patch.object(MenuSystem, "_select_suite")
+    @patch.object(MenuSystem, "_select_test_case_from_suite")
     def test_select_test_case_complete_flow(self, mock_select_test, mock_select_suite):
         """Test complete test case selection flow."""
         mock_select_suite.return_value = self.test_suite
@@ -114,7 +114,7 @@ class TestTestMenuSystem:
         mock_select_suite.assert_called_once()
         mock_select_test.assert_called_once_with(self.test_suite)
 
-    @patch.object(TestMenuSystem, "_select_suite")
+    @patch.object(MenuSystem, "_select_suite")
     def test_select_test_case_exit_at_suite(self, mock_select_suite):
         """Test test case selection with exit at suite level."""
         mock_select_suite.return_value = ExitAction()
@@ -124,8 +124,8 @@ class TestTestMenuSystem:
 
         assert result is None
 
-    @patch.object(TestMenuSystem, "_select_suite")
-    @patch.object(TestMenuSystem, "_select_test_case_from_suite")
+    @patch.object(MenuSystem, "_select_suite")
+    @patch.object(MenuSystem, "_select_test_case_from_suite")
     def test_select_test_case_back_navigation(self, mock_select_test, mock_select_suite):
         """Test test case selection with back navigation."""
         # First call: select suite, then back
@@ -140,7 +140,7 @@ class TestTestMenuSystem:
         assert result is None
         assert mock_select_suite.call_count == 2
 
-    @patch.object(TestMenuSystem, "_select_suite")
+    @patch.object(MenuSystem, "_select_suite")
     def test_select_test_case_keyboard_interrupt(self, mock_select_suite):
         """Test handling of keyboard interrupt."""
         mock_select_suite.side_effect = KeyboardInterrupt()
@@ -150,7 +150,7 @@ class TestTestMenuSystem:
 
         assert result is None
 
-    @patch.object(TestMenuSystem, "_select_suite")
+    @patch.object(MenuSystem, "_select_suite")
     def test_select_test_case_os_error_terminal(self, mock_select_suite):
         """Test handling of OSError for terminal issues."""
         mock_select_suite.side_effect = OSError("Invalid argument")
@@ -165,7 +165,7 @@ class TestTestMenuSystem:
         call_args = str(mock_print.call_args)
         assert "terminal" in call_args.lower()
 
-    @patch.object(TestMenuSystem, "_select_suite")
+    @patch.object(MenuSystem, "_select_suite")
     def test_select_test_case_os_error_other(self, mock_select_suite):
         """Test handling of other OSError."""
         mock_select_suite.side_effect = OSError("Some other error")
@@ -179,7 +179,7 @@ class TestTestMenuSystem:
         call_args = str(mock_print.call_args)
         assert "Terminal Error" in call_args
 
-    @patch.object(TestMenuSystem, "_select_suite")
+    @patch.object(MenuSystem, "_select_suite")
     def test_select_test_case_general_exception(self, mock_select_suite):
         """Test handling of general exceptions."""
         mock_select_suite.side_effect = ValueError("Test error")

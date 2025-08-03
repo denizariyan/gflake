@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.tree import Tree
 
 from .gflake_runner import GflakeRunner
-from .menu_system import TestMenuSystem
+from .menu_system import MenuSystem
 from .test_discovery import GTestDiscovery
 
 app = typer.Typer(
@@ -38,6 +38,7 @@ def run(
         "-p",
         help="Number of parallel processes (default: half of CPU cores)",
     ),
+    # TODO: remove
     verbose: bool = typer.Option(
         False,
         "--verbose",
@@ -82,7 +83,7 @@ def run(
             console.print("   Make sure the binary supports --gtest_list_tests")
             raise typer.Exit(1)
 
-        menu_system = TestMenuSystem(str(binary_path))
+        menu_system = MenuSystem(str(binary_path))
         gflake_runner = GflakeRunner(str(binary_path), num_processes=processes)
 
         selected_test = menu_system.select_test_case()
@@ -99,10 +100,10 @@ def run(
 
         # Exit with appropriate code based on flaky behavior detection
         if stats.failed_runs > 0:
-            console.print("\n🔍 [bold red]Flaky behavior detected![/bold red]")
+            console.print("\n[bold red]Flaky behavior detected![/bold red]")
             raise typer.Exit(1)
         else:
-            console.print("\n✅ [bold green]No flaky behavior detected.[/bold green]")
+            console.print("\n[bold green]No flaky behavior detected.[/bold green]")
             raise typer.Exit(0)
 
     except KeyboardInterrupt:

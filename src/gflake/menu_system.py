@@ -4,7 +4,6 @@ from typing import Optional, Union
 
 import questionary
 from rich.console import Console
-from rich.panel import Panel
 from rich.tree import Tree
 
 from .test_discovery import GTestCase, GTestDiscovery, GTestSuite
@@ -28,7 +27,7 @@ class BackAction(MenuAction):
         return "BACK"
 
 
-class TestMenuSystem:
+class MenuSystem:
     """Interactive menu system for selecting test cases."""
 
     def __init__(self, binary_path: str, suites: Optional[dict] = None):

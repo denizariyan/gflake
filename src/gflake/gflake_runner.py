@@ -40,10 +40,8 @@ class GflakeRunStats:
 
     test_case: GTestCase
     num_processes: int = 1
-    actual_attempts: int = 0
     successful_runs: int = 0
     failed_runs: int = 0
-    total_time_elapsed: float = 0.0  # in seconds
     failure_details: List[GTestRunResult] = field(default_factory=list)
     per_run_stats: List[float] = field(
         default_factory=list,
@@ -141,7 +139,6 @@ class GflakeRunner:
                             result = future.result()
                             completed_attempts += 1
 
-                            stats.actual_attempts = completed_attempts
                             stats.per_run_stats.append(
                                 result.duration,
                             )  # Track individual run time
@@ -150,8 +147,6 @@ class GflakeRunner:
                             else:
                                 stats.failed_runs += 1
                                 stats.failure_details.append(result)
-
-                            stats.total_time_elapsed = time.time() - start_time
 
                             # Update live dashboard
                             live.update(
@@ -178,7 +173,6 @@ class GflakeRunner:
                         except Exception as e:
                             # Handle individual test execution errors
                             completed_attempts += 1
-                            stats.actual_attempts = completed_attempts
                             stats.failed_runs += 1
 
                             # Create error result
@@ -198,10 +192,16 @@ class GflakeRunner:
                 for future in futures:
                     future.cancel()
 
-        # After live dashboard ends, show final results
         self._show_final_results(stats)
 
         return stats
+
+    def _get_loading_animation(self, elapsed_time: float) -> str:
+        """A crude way to create a loading animation."""
+        # This will look choppy if the test cases take too long to run...
+        animation_chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+        frame_index = int(elapsed_time * 5) % len(animation_chars)
+        return animation_chars[frame_index]
 
     def _create_dashboard(
         self,
@@ -216,9 +216,13 @@ class GflakeRunner:
         time_remaining = max(0, duration_seconds - elapsed_time)
         time_progress = min(100, (elapsed_time / duration_seconds) * 100)
 
+        # Create animated title with loading spinner
+        loading_spinner = self._get_loading_animation(elapsed_time)
+        animated_title = f"{loading_spinner} gFlake Session"
+
         # Create main results table
         table = Table(
-            title="🎯 Live gFlake Session",
+            title=animated_title,
             show_header=True,
             header_style="bold magenta",
         )
@@ -274,55 +278,6 @@ class GflakeRunner:
 
     def _show_final_results(self, stats: GflakeRunStats):
         """Display final results."""
-        self.console.print("\n" + "=" * 60)
-        self.console.print("🏁 [bold green]gFlake Session Complete[/bold green]")
-        self.console.print("=" * 60)
-
-        results_table = Table(title="Session Results")
-        results_table.add_column("Metric", style="cyan")
-        results_table.add_column("Value", style="yellow")
-
-        success_rate = (stats.successful_runs / stats.actual_attempts * 100) if stats.actual_attempts > 0 else 0
-
-        # Session information
-        results_table.add_row("Test Case", stats.test_case.full_name)
-        results_table.add_row("Processes Used", f"{stats.num_processes}")
-        results_table.add_row("Total Attempts", f"{stats.actual_attempts:,}")
-        results_table.add_row("Successful Runs", f"{stats.successful_runs:,}")
-        results_table.add_row("Failed Runs", f"{stats.failed_runs:,}")
-        results_table.add_row("Success Rate", f"{success_rate:.2f}%")
-        results_table.add_row(
-            "Total Time",
-            self.runner.format_duration(stats.total_time_elapsed),
-        )
-        results_table.add_row(
-            "Throughput",
-            f"{stats.actual_attempts / max(stats.total_time_elapsed, 0.001):.1f} tests/sec",
-        )
-
-        # Add timing statistics if available
-        if stats.per_run_stats:
-            run_stats = self._calculate_run_time_stats(stats.per_run_stats)
-            results_table.add_row("", "")  # Empty row for separation
-            results_table.add_row(
-                "Median Time",
-                self.runner.format_duration(run_stats.median),
-            )
-            results_table.add_row(
-                "Mean Time",
-                self.runner.format_duration(run_stats.mean),
-            )
-            results_table.add_row(
-                "Min Time",
-                self.runner.format_duration(run_stats.min_time),
-            )
-            results_table.add_row(
-                "Max Time",
-                self.runner.format_duration(run_stats.max_time),
-            )
-
-        self.console.print(results_table)
-
         # Show failure analysis if there were failures
         if stats.failed_runs > 0:
             self.console.print(
@@ -356,13 +311,12 @@ class GflakeRunner:
                 self._show_failure_logs(stats.failure_details)
         else:
             self.console.print(
-                f"\n✅ [bold green]All {stats.successful_runs} attempts passed![/bold green]",
+                f"\n[bold green]All {stats.successful_runs} attempts passed![/bold green]",
             )
 
     def _show_failure_logs(
         self,
         failure_details: List[GTestRunResult],
-        max_logs: int = 1,
     ):
         """Show detailed logs for failed test runs and write them to file."""
         if not failure_details:
@@ -372,10 +326,10 @@ class GflakeRunner:
         self._write_failures_to_file(failure_details)
 
         self.console.print(
-            f"\n[bold]Failure Logs[/bold] (showing first {min(max_logs, len(failure_details))} failures):",
+            "\n[bold]Failure Logs[/bold] (showing first):",
         )
 
-        for i, failure in enumerate(failure_details[:max_logs]):
+        for i, failure in enumerate(failure_details[:1]):
             self.console.print(f"\n[bold red]Failure #{i + 1}:[/bold red]")
 
             # Create a panel for each failure
@@ -414,13 +368,13 @@ class GflakeRunner:
             )
             self.console.print(panel)
 
-        if len(failure_details) > max_logs:
-            remaining = len(failure_details) - max_logs
+        if len(failure_details) > 1:
+            remaining = len(failure_details) - 1
             self.console.print(f"\n[dim]... and {remaining} more failures.[/dim]")
 
         # Notify user about the log file
         self.console.print(
-            f"\n💾 [dim]All {len(failure_details)} failed test runs logged to: failed_tests.log[/dim]",
+            f"\n[dim]All {len(failure_details)} failed test runs logged to: failed_tests.log[/dim]",
         )
 
     def _write_failures_to_file(self, failure_details: List[GTestRunResult]):
