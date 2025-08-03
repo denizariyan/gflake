@@ -13,6 +13,7 @@ from rich.table import Table
 
 from .test_discovery import GTestCase
 from .test_runner import GTestRunner, GTestRunResult
+from .utils import format_duration
 
 
 def _run_single_test_worker(args):
@@ -83,7 +84,7 @@ class GflakeRunner:
         self.console.print("🎯 [bold blue]Starting gflake Session[/bold blue]")
         self.console.print(f"   Test: [cyan]{test_case.full_name}[/cyan]")
         self.console.print(
-            f"   Duration: [yellow]{self.runner.format_duration(duration_minutes * 60)}[/yellow]",
+            f"   Duration: [yellow]{format_duration(duration_minutes * 60)}[/yellow]",
         )
         self.console.print(f"   Processes: [magenta]{self.num_processes}[/magenta]")
         self.console.print()
@@ -236,10 +237,9 @@ class GflakeRunner:
         table.add_row("Test Case", stats.test_case.full_name)
         table.add_row(
             "Progress",
-            f"{time_progress:.1f}% ({self.runner.format_duration(elapsed_time)} / "
-            f"{self.runner.format_duration(duration_seconds)})",
+            f"{time_progress:.1f}% ({format_duration(elapsed_time)} / {format_duration(duration_seconds)})",
         )
-        table.add_row("Time Remaining", self.runner.format_duration(time_remaining))
+        table.add_row("Time Remaining", format_duration(time_remaining))
         table.add_row("Processes Used", f"{stats.num_processes}")
 
         # Live statistics
@@ -252,10 +252,10 @@ class GflakeRunner:
 
         run_stats = self._calculate_run_time_stats(stats.per_run_stats)
         table.add_row("", "")  # Separator
-        table.add_row("Median Time", self.runner.format_duration(run_stats.median))
-        table.add_row("Mean Time", self.runner.format_duration(run_stats.mean))
-        table.add_row("Min Time", self.runner.format_duration(run_stats.min_time))
-        table.add_row("Max Time", self.runner.format_duration(run_stats.max_time))
+        table.add_row("Median Time", format_duration(run_stats.median))
+        table.add_row("Mean Time", format_duration(run_stats.mean))
+        table.add_row("Min Time", format_duration(run_stats.min_time))
+        table.add_row("Max Time", format_duration(run_stats.max_time))
 
         return Panel(table, border_style="green", padding=(0, 1))
 
@@ -337,7 +337,7 @@ class GflakeRunner:
 
             failure_content.append(f"[bold]Return Code:[/bold] {failure.return_code}")
             failure_content.append(
-                f"[bold]Duration:[/bold] {self.runner.format_duration(failure.duration)}",
+                f"[bold]Duration:[/bold] {format_duration(failure.duration)}",
             )
 
             if failure.stdout.strip():
@@ -397,7 +397,7 @@ class GflakeRunner:
                     f.write(f"{'—' * 40}\n")
                     f.write(f"Return Code: {failure.return_code}\n")
                     f.write(
-                        f"Duration: {self.runner.format_duration(failure.duration)}\n",
+                        f"Duration: {format_duration(failure.duration)}\n",
                     )
 
                     if failure.stdout.strip():

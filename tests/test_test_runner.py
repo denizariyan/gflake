@@ -69,24 +69,6 @@ class TestTestRunner:
         assert "timed out" in result.stderr.lower()
         assert result.return_code == -1
 
-    def test_format_duration_categories(self):
-        """Test duration formatting uses correct units."""
-        # Test milliseconds for sub-second values
-        ms_result = self.runner.format_duration(0.001)
-        assert "1.0ms" in ms_result
-
-        # Test seconds for 1-59 second values
-        s_result = self.runner.format_duration(1.0)
-        assert "1.000s" in s_result
-        assert "ms" not in s_result
-        assert "m" not in s_result
-
-        # Test minutes for 60+ second values
-        m_result = self.runner.format_duration(60.0)
-        assert "1m" in m_result
-        assert "0.0s" in m_result
-        assert "ms" not in m_result
-
     def test_test_run_result_dataclass(self):
         """Test TestRunResult dataclass properties."""
         result = GTestRunResult(

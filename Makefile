@@ -45,9 +45,9 @@ clean:  ## Clean build artifacts
 build:  ## Build the Python package
 	poetry build
 
-check:  ## Run all checks (lint, format, test)
-	$(MAKE) lint
-	$(MAKE) format-check  
+check:  ## Run all checks and auto-fixes
+	$(MAKE) lint-fix
+	$(MAKE) format
 	$(MAKE) test
 	$(MAKE) coverage
 

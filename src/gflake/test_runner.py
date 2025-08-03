@@ -97,15 +97,3 @@ class GTestRunner:
                 stderr=f"Error running test: {e}",
                 return_code=-2,
             )
-
-    # TODO: move to a utility module
-    def format_duration(self, seconds: float) -> str:
-        """Format duration in a human-readable way."""
-        if seconds < 1:
-            return f"{seconds * 1000:.1f}ms"
-        elif seconds < 60:
-            return f"{seconds:.3f}s"
-        else:
-            minutes = int(seconds // 60)
-            remaining_seconds = seconds % 60
-            return f"{minutes}m {remaining_seconds:.1f}s"
