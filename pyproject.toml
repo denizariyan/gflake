@@ -20,6 +20,10 @@ dev = [
     "ruff>=0.12.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/denizariyan/gflake"
+Issues = "https://github.com/denizariyan/gflake/issues"
+
 [project.scripts]
 gflake = "gflake.cli:main"
 
