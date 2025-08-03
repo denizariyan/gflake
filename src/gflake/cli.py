@@ -38,13 +38,6 @@ def run(
         "-p",
         help="Number of parallel processes (default: half of CPU cores)",
     ),
-    # TODO: remove
-    verbose: bool = typer.Option(
-        False,
-        "--verbose",
-        "-v",
-        help="Enable verbose output",
-    ),
 ):
     """Run the gFlake tool interactively.
 
@@ -114,8 +107,6 @@ def run(
         raise
     except Exception as e:
         console.print(f"\n❌ [bold red]Unexpected error:[/bold red] {e}")
-        if verbose:
-            console.print_exception()
         raise typer.Exit(1)
 
 
