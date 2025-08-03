@@ -10,7 +10,7 @@ from rich.tree import Tree
 
 from .gflake_runner import GflakeRunner
 from .menu_system import MenuSystem
-from .test_discovery import GTestDiscovery
+from .test_discovery import GTestCase, GTestDiscovery
 
 app = typer.Typer(
     name="gFlake",
@@ -26,6 +26,12 @@ def run(
         ...,
         help="Path to the gtest binary to run tests from",
     ),
+    test_name: Optional[str] = typer.Option(
+        None,
+        "--test-name",
+        "-t",
+        help="Full test name (e.g., 'SuiteName.TestCase') to run directly without menu",
+    ),
     duration: float = typer.Option(
         5.0,
         "--duration",
@@ -39,10 +45,11 @@ def run(
         help="Number of parallel processes (default: half of CPU cores)",
     ),
 ):
-    """Run the gFlake tool interactively.
+    """Run the gFlake tool.
 
-    This will discover tests from the binary, show interactive menus for test selection,
-    and run gFlake sessions with progress bars and detailed statistics.
+    This will discover tests from the binary. If a test name is provided, it will run
+    that test directly. Otherwise, it will show interactive menus for test selection.
+    All sessions include progress bars and detailed statistics.
     """
     try:
         # Validate binary path
@@ -68,7 +75,7 @@ def run(
 
         # Discover tests
         console.print("[bold]Discovering tests...[/bold]")
-        discovery = GTestDiscovery(str(binary_path))
+        discovery = GTestDiscovery(binary_path)
         suites = discovery.discover_tests()
 
         if not suites:
@@ -76,14 +83,22 @@ def run(
             console.print("   Make sure the binary supports --gtest_list_tests")
             raise typer.Exit(1)
 
-        menu_system = MenuSystem(str(binary_path))
-        gflake_runner = GflakeRunner(str(binary_path), num_processes=processes)
+        gflake_runner = GflakeRunner(binary_path, num_processes=processes)
 
-        selected_test = menu_system.select_test_case()
+        if test_name:
+            selected_test = _find_test_by_name(test_name, suites)
+            if selected_test is None:
+                console.print(f"❌ [bold red]Test not found:[/bold red] {test_name}")
+                console.print(f"   Use 'gflake discover {binary_path}' to see available tests")
+                raise typer.Exit(1)
+            console.print(f"[bold green]Running test:[/bold green] {selected_test.full_name}")
+        else:
+            menu_system = MenuSystem(binary_path, suites)
+            selected_test = menu_system.select_test_case()
 
-        if selected_test is None:
-            console.print("👋 [yellow]Goodbye![/yellow]")
-            raise typer.Exit(0)
+            if selected_test is None:
+                console.print("👋 [yellow]Goodbye![/yellow]")
+                raise typer.Exit(0)
 
         console.print()
         stats = gflake_runner.run_gflake_session(
@@ -132,7 +147,7 @@ def discover(
         console.print()
 
         # Discover tests
-        discovery = GTestDiscovery(str(binary_path))
+        discovery = GTestDiscovery(binary_path)
         suites = discovery.discover_tests()
 
         if not suites:
@@ -151,6 +166,23 @@ def discover(
     except Exception as e:
         console.print(f"❌ [bold red]Error:[/bold red] {e}")
         raise typer.Exit(1)
+
+
+def _find_test_by_name(test_name: str, suites) -> Optional[GTestCase]:
+    """Find a test case by its full name (SuiteName.TestName).
+
+    Args:
+        test_name: Full test name in format "SuiteName.TestName"
+        suites: Dictionary of test suites from discovery
+
+    Returns:
+        GTestCase if found, None otherwise
+    """
+    for suite in suites.values():
+        for case in suite.cases:
+            if case.full_name == test_name:
+                return case
+    return None
 
 
 def _display_discovered_tests(suites):

@@ -12,7 +12,6 @@ A CLI tool to automatically discover and repeatedly run Google Test (gtest) test
 - **Failure Logging** - All failed runs logged to `failed_tests.log`
 
 ![gflake Demo](static/gflake.gif)
-TODO: replace the gif with new name
 
 ## Quick Start
 
@@ -77,6 +76,7 @@ This will:
 gflake run <binary> [OPTIONS]
 
 Options:
+  -t, --test-name TEXT     Full test name (e.g., 'SuiteName.TestCase') to run directly without menu
   -d, --duration FLOAT     Duration to run tests in seconds [default: 5.0]
   -p, --processes INT      Number of parallel processes [default: auto]
   -v, --verbose            Enable verbose output
@@ -86,8 +86,11 @@ Options:
 ### Examples
 
 ```bash
-# Run for 30 seconds with automatic process count
+# Interactive mode - shows menus for test selection
 gflake run <path-to-your-gtest-binary> --duration 30
+
+# Direct test execution - runs specific test without menu
+gflake run <path-to-your-gtest-binary> --test-name "BasicTests.FlakyTest" --duration 30
 
 # Run for 10 minutes with 4 processes
 gflake run <path-to-your-gtest-binary> --duration 600 --processes 4
@@ -103,18 +106,41 @@ gflake run <path-to-your-gtest-binary> --processes 1
 gflake discover <path-to-your-gtest-binary>
 ```
 
+#### Finding Test Names for Direct Execution
+
+Use the `discover` command to see all available test names in the exact format needed for the `--test-name` option:
+
+Example output:
+
+```bash
+gflake discover cpp/build/test_binary
+
+📁 BasicTests (3 tests)
+├── 🧩 SimpleTest                   # Use: BasicTests.SimpleTest
+└── 🧩 SlowTest                     # Use: BasicTests.SlowTest
+
+📁 TypedTest/0 (2 tests) (typed)
+├── 🧩 DefaultConstruction          # Use: TypedTest/0.DefaultConstruction
+└── 🧩 Assignment                   # Use: TypedTest/0.Assignment
+```
+
 ## Understanding the Output
 
-### Timing Analysis
+### Session Summary
 
-- **Test Case**: Name of the test that was executed
-- **Processes Used**: Number of parallel processes used
-- **Total Attempts**: Total number of test runs executed
+gFlake provides a comprehensive session summary table with the following metrics:
+
+- **Test Case**: Full name of the test that was executed
+- **Progress**: Real-time progress showing elapsed time vs target duration
+- **Time Remaining**: Time left in the session
+- **Processes Used**: Number of parallel processes utilized during execution
+
+- **Total Attempts**: Total number of test runs executed during the session
 - **Successful Runs**: Number of runs that passed successfully
 - **Failed Runs**: Number of runs that failed
 - **Success Rate**: Percentage of successful runs
-- **Total Duration**: Total time taken for all test runs
 - **Throughput**: Tests executed per second across all processes
+
 - **Median/Mean/Min/Max Time**: Aggregated statistics for all test runs
 
 ### Failure Analysis

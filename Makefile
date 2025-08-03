@@ -24,7 +24,7 @@ test:  ## Run all tests (Python and C++)
 	$(MAKE) test-cpp
 
 test-python:  ## Run Python tests
-	poetry run pytest -v
+	poetry run pytest
 
 test-cpp:  ## Build and run C++ tests (excluding flaky test)
 	cd cpp && mkdir -p build && cd build && cmake .. && make

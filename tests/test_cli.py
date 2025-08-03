@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 from typer.testing import CliRunner
 
-from gflake.cli import _display_discovered_tests, app
+from gflake.cli import _display_discovered_tests, _find_test_by_name, app
 from gflake.gflake_runner import GflakeRunStats
 from gflake.test_discovery import GTestCase, GTestSuite
 
@@ -66,7 +66,7 @@ class TestCLI:
         result = self.runner.invoke(app, ["discover", "/path/to/binary"])
 
         assert result.exit_code == 0
-        mock_discovery.assert_called_once_with("/path/to/binary")
+        mock_discovery.assert_called_once()
         mock_display.assert_called_once()
 
     @patch("pathlib.Path.exists", return_value=False)
@@ -241,8 +241,9 @@ class TestCLI:
 
         # Should execute successfully with custom options
         assert result.exit_code == 0
-        # Verify custom options were passed correctly
-        mock_runner_class.assert_called_once_with("/path/to/binary", num_processes=4)
+        mock_runner_class.assert_called_once()
+        call_args = mock_runner_class.call_args
+        assert call_args[1]["num_processes"] == 4
         mock_runner_instance.run_gflake_session.assert_called_once()
         call_args = mock_runner_instance.run_gflake_session.call_args
         assert call_args[1]["duration_minutes"] == 2.0  # 120/60 = 2.0
@@ -364,3 +365,148 @@ class TestCLI:
 
         assert result.exit_code == 1
         assert "Interrupted by user" in result.stdout
+
+    def test_find_test_by_name_success(self):
+        """Test finding an existing test by name."""
+        suites = {"Suite": self.test_suite}
+        result = _find_test_by_name("Suite.TestName", suites)
+
+        assert result is not None
+        assert result.full_name == "Suite.TestName"
+        assert result.name == "TestName"
+
+    def test_find_test_by_name_not_found(self):
+        """Test finding a non-existent test by name."""
+        suites = {"Suite": self.test_suite}
+        result = _find_test_by_name("NonExistent.TestName", suites)
+
+        assert result is None
+
+    def test_find_test_by_name_parameterized(self):
+        """Test finding a parameterized test by name."""
+        param_case = GTestCase(
+            name="ParamTest/0",
+            full_name="ParamSuite.ParamTest/0",
+            suite_name="ParamSuite",
+            is_parameterized=True,
+        )
+        param_suite = GTestSuite(name="ParamSuite", cases=[param_case])
+        suites = {"ParamSuite": param_suite}
+
+        result = _find_test_by_name("ParamSuite.ParamTest/0", suites)
+
+        assert result is not None
+        assert result.full_name == "ParamSuite.ParamTest/0"
+        assert result.is_parameterized
+
+    def test_find_test_by_name_empty_suites(self):
+        """Test finding a test in empty suites."""
+        result = _find_test_by_name("Any.Test", {})
+
+        assert result is None
+
+    @patch("gflake.cli.GTestDiscovery")
+    @patch("gflake.cli.MenuSystem")
+    @patch("gflake.cli.GflakeRunner")
+    @patch("pathlib.Path.exists", return_value=True)
+    @patch("pathlib.Path.is_file", return_value=True)
+    def test_run_command_with_test_name_success(
+        self,
+        _mock_is_file,
+        _mock_exists,
+        mock_runner_class,
+        mock_menu_class,
+        mock_discovery,
+    ):
+        """Test run command with direct test name specification."""
+        # Setup discovery mock
+        mock_discovery_instance = Mock()
+        mock_discovery_instance.discover_tests.return_value = {"Suite": self.test_suite}
+        mock_discovery.return_value = mock_discovery_instance
+
+        # Setup runner mock
+        mock_runner_instance = Mock()
+        mock_stats = GflakeRunStats(
+            test_case=self.test_case,
+            num_processes=2,
+            failed_runs=0,
+        )
+        mock_runner_instance.run_gflake_session.return_value = mock_stats
+        mock_runner_class.return_value = mock_runner_instance
+
+        result = self.runner.invoke(
+            app,
+            ["run", "/path/to/binary", "--test-name", "Suite.TestName", "--duration", "60"],
+        )
+
+        assert result.exit_code == 0
+        assert "Running test: Suite.TestName" in result.stdout
+        mock_menu_class.assert_not_called()
+        mock_runner_instance.run_gflake_session.assert_called_once()
+
+    @patch("gflake.cli.GTestDiscovery")
+    @patch("pathlib.Path.exists", return_value=True)
+    @patch("pathlib.Path.is_file", return_value=True)
+    def test_run_command_with_test_name_not_found(
+        self,
+        _mock_is_file,
+        _mock_exists,
+        mock_discovery,
+    ):
+        """Test run command with non-existent test name."""
+        # Setup discovery mock
+        mock_discovery_instance = Mock()
+        mock_discovery_instance.discover_tests.return_value = {"Suite": self.test_suite}
+        mock_discovery.return_value = mock_discovery_instance
+
+        result = self.runner.invoke(
+            app,
+            ["run", "/path/to/binary", "--test-name", "NonExistent.Test", "--duration", "60"],
+        )
+
+        assert result.exit_code == 1
+        assert "Test not found: NonExistent.Test" in result.stdout
+        assert "Use 'gflake discover" in result.stdout
+
+    @patch("gflake.cli.GTestDiscovery")
+    @patch("gflake.cli.GflakeRunner")
+    @patch("pathlib.Path.exists", return_value=True)
+    @patch("pathlib.Path.is_file", return_value=True)
+    def test_run_command_with_test_name_flaky_detected(
+        self,
+        _mock_is_file,
+        _mock_exists,
+        mock_runner_class,
+        mock_discovery,
+    ):
+        """Test run command with test name when flaky behavior is detected."""
+        # Setup discovery mock
+        mock_discovery_instance = Mock()
+        mock_discovery_instance.discover_tests.return_value = {"Suite": self.test_suite}
+        mock_discovery.return_value = mock_discovery_instance
+
+        # Setup runner mock with failures
+        mock_runner_instance = Mock()
+        mock_stats = GflakeRunStats(
+            test_case=self.test_case,
+            num_processes=2,
+            failed_runs=3,  # Some failures
+        )
+        mock_runner_instance.run_gflake_session.return_value = mock_stats
+        mock_runner_class.return_value = mock_runner_instance
+
+        result = self.runner.invoke(
+            app,
+            ["run", "/path/to/binary", "--test-name", "Suite.TestName", "--duration", "60"],
+        )
+
+        # Still inform about the flaky behavior
+        assert result.exit_code == 1
+        assert "flaky behavior detected" in result.stdout.lower()
+
+    def test_run_command_help_includes_test_name(self):
+        """Test that run command help includes the new test-name option."""
+        result = self.runner.invoke(app, ["run", "--help"])
+        assert result.exit_code == 0
+        assert "--test-name" in result.stdout
+        assert "Full test name" in result.stdout

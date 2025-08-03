@@ -60,4 +60,11 @@ jobs:
         run: |
           poetry run gflake discover cpp/build/test_binary
 
-# TODO: add a way to select test name by args and run it here
+      - name: Run sample test (BasicTests.FastTest)
+        run: |
+          poetry run gflake run cpp/build/test_binary --test-name "BasicTests.FastTest" --duration 3
+
+      - name: Run flaky test (BasicTests.FlakyTest)
+        run: |
+          poetry run gflake run cpp/build/test_binary --test-name "BasicTests.FlakyTest" --duration 3
+        continue-on-error: true
