@@ -1,6 +1,6 @@
 [project]
 name = "gflake"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 authors = [
     {name = "Deniz Ariyan",email = "contact@denizariyan.com"}
